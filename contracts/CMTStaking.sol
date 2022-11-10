@@ -12,15 +12,16 @@ contract CMTStaking is
     OwnableUpgradeable,
     UUPSUpgradeable
 {
-    event AddValidator(address validator, bool isExist);
-    event RemoveValidator(address validator, bool isExist);
+    event AddValidator(address validator);
+    event RemoveValidator(address validator);
     event Staking(address validator, uint256 amount);
     event Unstaking(uint256 amount);
     event Withdraw(uint256 amount);
     event Reward(uint256 amount);
     event Received(uint256 amount);
 
-    struct StakingBalance {
+    struct Staker {
+        address stakerAddr;
         uint256 stakingAmount;
         uint256 unstakingAmount;
         uint256 unstakingTime;
@@ -29,6 +30,7 @@ contract CMTStaking is
     struct Validator {
         address validatorAddr;
         uint256 stakingAmount;
+        bool isValid;
     }
 
     struct StakingRecord {
@@ -37,10 +39,11 @@ contract CMTStaking is
         uint256 amount;
     }
 
-    address[] public stakers;
+    Staker[] public stakers;
     Validator[] public validators;
     StakingRecord[] public stakingRecords;
-    mapping(address => StakingBalance) public stakingBalances;
+    mapping(address => uint256) public stakerIndexes;
+    mapping(address => uint256) public validatorIndexes;
     mapping(address => mapping(address => uint256)) public stakingIndexes;
     uint256 public stakingTotalAmount;
     uint256 public validatorLimit;
@@ -50,14 +53,16 @@ contract CMTStaking is
         _disableInitializers();
     }
 
-    function initialize() public initializer {
+    function initialize(address validator) public initializer {
         __Pausable_init();
         __Ownable_init();
         __UUPSUpgradeable_init();
 
-        // stakingIndexes中默认值为0，所以0为无效索引，需要在stakingRecords中的0索引初始化一个无效记录。
-        stakingRecords.push(StakingRecord(address(0), address(0), 0));
+        // 最多21个验证节点
         validatorLimit = 21;
+        // 部署节点需要预置1个验证节点
+        validators.push(Validator(validator, 0, true));
+        validatorIndexes[validator] = validators.length;
     }
 
     function getVersion() public pure returns (uint256) {
@@ -70,37 +75,28 @@ contract CMTStaking is
 
     function addValidator(address validator) public onlyOwner whenNotPaused {
         require(validator != address(0), "Invalid address.");
-        require(validators.length < validatorLimit, "Validator is full.");
+        require(validators.length < validatorLimit, "Validators are full.");
 
-        bool isExist = false;
-        for (uint256 i = 0; i < validators.length; i++) {
-            if (validators[i].validatorAddr == validator) {
-                isExist = true;
-                break;
-            }
+        uint256 index = validatorIndexes[validator];
+        if (index > 0) {
+            validators[index - 1].isValid = true;
+        } else {
+            validators.push(Validator(validator, 0, true));
+            validatorIndexes[validator] = validators.length;
         }
 
-        if (!isExist) {
-            validators.push(Validator(validator, 0));
-        }
-
-        emit AddValidator(validator, isExist);
+        emit AddValidator(validator);
     }
 
     function removeValidator(address validator) public onlyOwner whenNotPaused {
         require(validator != address(0), "Invalid address.");
+        require(validators.length > 1, "Validators must be more than 1.");
 
-        bool isExist = false;
-        for (uint256 i = 0; i < validators.length; i++) {
-            if (validators[i].validatorAddr == validator) {
-                isExist = true;
-                validators[i] = validators[validators.length - 1];
-                validators.pop();
-                break;
-            }
+        uint256 index = validatorIndexes[validator];
+        if (index > 0) {
+            validators[index - 1].isValid = false;
+            emit RemoveValidator(validator);
         }
-
-        emit RemoveValidator(validator, isExist);
     }
 
     function getValidatorCount()
@@ -113,119 +109,139 @@ contract CMTStaking is
         return validators.length;
     }
 
-    function staking(address validator) public payable whenNotPaused {
-        require(validator != address(0), "Invalid address.");
-        require(msg.value > 0, "Staking amount must be greater than 0.");
-        require(
-            stakingBalances[msg.sender].stakingAmount + msg.value >
-                stakingBalances[msg.sender].stakingAmount
-        );
-
-        bool isExist = false;
-        for (uint256 i = 0; i < stakers.length; i++) {
-            if (stakers[i] == msg.sender) {
-                isExist = true;
-            }
-        }
-        if (!isExist) {
-            stakers.push(msg.sender);
-        }
-
-        uint256 index = stakingIndexes[msg.sender][validator];
-        if (index == 0) {
-            index = stakingRecords.length;
-            stakingIndexes[msg.sender][validator] = index;
-            stakingRecords.push(StakingRecord(msg.sender, validator, 0));
-        }
-        stakingBalances[msg.sender].stakingAmount += msg.value;
-        stakingRecords[index].amount += msg.value;
-        stakingTotalAmount += msg.value;
-        emit Staking(validator, msg.value);
-    }
-
-    function unstaking(uint256 _amount) public whenNotPaused {
-        require(
-            stakingBalances[msg.sender].stakingAmount > _amount,
-            "Insufficient balance."
-        );
-        require(
-            stakingBalances[msg.sender].stakingAmount - _amount <
-                stakingBalances[msg.sender].stakingAmount
-        );
-
-        uint256 remain = _amount;
-        for (uint256 i = 0; i < validators.length; i++) {
-            uint256 index = stakingIndexes[msg.sender][
-                validators[i].validatorAddr
-            ];
-            if (stakingRecords[index].amount >= remain) {
-                stakingRecords[index].amount -= remain;
-                validators[i].stakingAmount -= remain;
-                break;
-            } else {
-                remain -= stakingRecords[index].amount;
-                validators[i].stakingAmount -= stakingRecords[index].amount;
-                stakingRecords[index].amount = 0;
-            }
-        }
-        stakingBalances[msg.sender].stakingAmount -= _amount;
-        stakingBalances[msg.sender].unstakingAmount += _amount;
-        stakingBalances[msg.sender].unstakingTime = block.timestamp;
-        stakingTotalAmount -= _amount;
-        emit Unstaking(_amount);
-    }
-
-    function withdraw(address payable _to) public whenNotPaused {
-        // 最后一次unstake时间的7天后可以提取。
-        require(
-            block.timestamp - stakingBalances[msg.sender].unstakingTime >
-                7 * 24 * 3600,
-            "Time Lock."
-        );
-        require(
-            stakingBalances[msg.sender].unstakingAmount > 0,
-            "Insufficient balance."
-        );
-
-        stakingBalances[msg.sender].unstakingAmount = 0;
-        uint256 unstakingAmount = stakingBalances[msg.sender].unstakingAmount;
-        _to.transfer(unstakingAmount);
-        emit Withdraw(unstakingAmount);
-    }
-
-    function reward() public onlyOwner whenNotPaused {
-        // staker奖励分发，分发到staking中(复利)
-        // 如果需要实现单利，则分发unstaking中
-        for (uint256 i = 0; i < stakers.length; i++) {
-            stakingBalances[stakers[i]].stakingAmount +=
-                (stakingBalances[stakers[i]].stakingAmount * 6) /
-                100;
-            // stakingBalances[stakers[i]].unstakingAmount += stakingBalances[stakers[i]].stakingAmount * 6 / 100;
-        }
-
-        // validator奖励分发，分发到账户余额中
-        for (uint256 i = 0; i < validators.length; i++) {
-            payable(validators[i].validatorAddr).transfer(
-                (validators[i].stakingAmount * 2) / 100
-            );
-        }
-    }
-
-    function getStakingBalance()
+    function getValidatorState(address validator)
         public
         view
-        returns (
-            uint256,
-            uint256,
-            uint256
-        )
+        onlyOwner
+        whenNotPaused
+        returns (uint256, bool)
     {
-        return (
-            stakingBalances[msg.sender].stakingAmount,
-            stakingBalances[msg.sender].unstakingAmount,
-            stakingBalances[msg.sender].unstakingTime
-        );
+        require(validator != address(0), "Invalid address.");
+
+        uint256 index = validatorIndexes[validator];
+        if (index > 0) {
+            return (
+                validators[index - 1].stakingAmount,
+                validators[index - 1].isValid
+            );
+        }
+
+        return (0, false);
     }
+
+    // function staking(address validator) public payable whenNotPaused {
+    //     require(validator != address(0), "Invalid address.");
+    //     require(msg.value > 0, "Staking amount must be greater than 0.");
+    //     require(
+    //         stakingBalances[msg.sender].stakingAmount + msg.value >
+    //             stakingBalances[msg.sender].stakingAmount
+    //     );
+
+    //     bool isExist = false;
+    //     for (uint256 i = 0; i < stakers.length; i++) {
+    //         if (stakers[i] == msg.sender) {
+    //             isExist = true;
+    //         }
+    //     }
+    //     if (!isExist) {
+    //         stakers.push(msg.sender);
+    //     }
+
+    //     uint256 index = stakingIndexes[msg.sender][validator];
+    //     if (index == 0) {
+    //         index = stakingRecords.length;
+    //         stakingIndexes[msg.sender][validator] = index;
+    //         stakingRecords.push(StakingRecord(msg.sender, validator, 0));
+    //     }
+    //     stakingBalances[msg.sender].stakingAmount += msg.value;
+    //     stakingRecords[index].amount += msg.value;
+    //     stakingTotalAmount += msg.value;
+    //     emit Staking(validator, msg.value);
+    // }
+
+    // function unstaking(uint256 _amount) public whenNotPaused {
+    //     require(
+    //         stakingBalances[msg.sender].stakingAmount > _amount,
+    //         "Insufficient balance."
+    //     );
+    //     require(
+    //         stakingBalances[msg.sender].stakingAmount - _amount <
+    //             stakingBalances[msg.sender].stakingAmount
+    //     );
+
+    //     uint256 remain = _amount;
+    //     for (uint256 i = 0; i < validators.length; i++) {
+    //         uint256 index = stakingIndexes[msg.sender][
+    //             validators[i].validatorAddr
+    //         ];
+    //         if (stakingRecords[index].amount >= remain) {
+    //             stakingRecords[index].amount -= remain;
+    //             validators[i].stakingAmount -= remain;
+    //             break;
+    //         } else {
+    //             remain -= stakingRecords[index].amount;
+    //             validators[i].stakingAmount -= stakingRecords[index].amount;
+    //             stakingRecords[index].amount = 0;
+    //         }
+    //     }
+    //     stakingBalances[msg.sender].stakingAmount -= _amount;
+    //     stakingBalances[msg.sender].unstakingAmount += _amount;
+    //     stakingBalances[msg.sender].unstakingTime = block.timestamp;
+    //     stakingTotalAmount -= _amount;
+    //     emit Unstaking(_amount);
+    // }
+
+    // function withdraw(address payable _to) public whenNotPaused {
+    //     // 最后一次unstake时间的7天后可以提取。
+    //     require(
+    //         block.timestamp - stakingBalances[msg.sender].unstakingTime >
+    //             7 * 24 * 3600,
+    //         "Time Lock."
+    //     );
+    //     require(
+    //         stakingBalances[msg.sender].unstakingAmount > 0,
+    //         "Insufficient balance."
+    //     );
+
+    //     stakingBalances[msg.sender].unstakingAmount = 0;
+    //     uint256 unstakingAmount = stakingBalances[msg.sender].unstakingAmount;
+    //     _to.transfer(unstakingAmount);
+    //     emit Withdraw(unstakingAmount);
+    // }
+
+    // function reward() public onlyOwner whenNotPaused {
+    //     // staker奖励分发，分发到staking中(复利)
+    //     // 如果需要实现单利，则分发unstaking中
+    //     for (uint256 i = 0; i < stakers.length; i++) {
+    //         stakingBalances[stakers[i]].stakingAmount +=
+    //             (stakingBalances[stakers[i]].stakingAmount * 6) /
+    //             100;
+    //         // stakingBalances[stakers[i]].unstakingAmount += stakingBalances[stakers[i]].stakingAmount * 6 / 100;
+    //     }
+
+    //     // validator奖励分发，分发到账户余额中
+    //     for (uint256 i = 0; i < validators.length; i++) {
+    //         payable(validators[i].validatorAddr).transfer(
+    //             (validators[i].stakingAmount * 2) / 100
+    //         );
+    //     }
+    // }
+
+    // function getStakingBalance()
+    //     public
+    //     view
+    //     returns (
+    //         uint256,
+    //         uint256,
+    //         uint256
+    //     )
+    // {
+    //     return (
+    //         stakingBalances[msg.sender].stakingAmount,
+    //         stakingBalances[msg.sender].unstakingAmount,
+    //         stakingBalances[msg.sender].unstakingTime
+    //     );
+    // }
 
     receive() external payable {
         emit Received(msg.value);

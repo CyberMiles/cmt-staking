@@ -42,6 +42,6 @@ describe('CMTStaking contract', function () {
     });
 
     it('Test stake and unstake', async function () {
-        
+        const {cmtStaking, owner, addr1, addr2, addr3, addr4} = await loadFixture(deployTokenFixture);
     });
 });
