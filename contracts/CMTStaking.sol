@@ -31,6 +31,7 @@ contract CMTStaking is
         address validatorAddr;
         uint256 stakingAmount;
         bool isValid;
+        uint256 opTime;
     }
 
     struct StakingRecord {
@@ -61,7 +62,7 @@ contract CMTStaking is
         // 最多21个验证节点
         validatorLimit = 21;
         // 部署节点需要预置1个验证节点
-        validators.push(Validator(validator, 0, true));
+        validators.push(Validator(validator, 0, true, block.timestamp));
         validatorIndexes[validator] = validators.length;
     }
 
@@ -80,8 +81,9 @@ contract CMTStaking is
         uint256 index = validatorIndexes[validator];
         if (index > 0) {
             validators[index - 1].isValid = true;
+            validators[index - 1].opTime = block.timestamp;
         } else {
-            validators.push(Validator(validator, 0, true));
+            validators.push(Validator(validator, 0, true, block.timestamp));
             validatorIndexes[validator] = validators.length;
         }
 
@@ -95,6 +97,7 @@ contract CMTStaking is
         uint256 index = validatorIndexes[validator];
         if (index > 0) {
             validators[index - 1].isValid = false;
+            validators[index - 1].opTime = block.timestamp;
             emit RemoveValidator(validator);
         }
     }
