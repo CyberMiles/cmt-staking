@@ -77,7 +77,8 @@ contract CMTStaking is
 
         // 最多21个验证节点
         validatorLimit = 21;
-        // 部署合约需要预置1个验证节点
+
+        // 最少1个验证节点
         validatorIndexes[validatorAddr] = 1;
         validators[1] = Validator(validatorAddr, 0, 0, true, block.timestamp);
     }
