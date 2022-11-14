@@ -7,8 +7,8 @@ const { isCallTrace } = require('hardhat/internal/hardhat-network/stack-traces/m
 describe('CMTStaking contract', function () {
     async function deployTokenFixture() {
         const [owner, addr1, addr2, addr3, addr4] = await ethers.getSigners();
-        const CMTStaking = await ethers.getContractFactory("CMTStaking");
-        const cmtStaking = await upgrades.deployProxy(CMTStaking, {initializer: 'initialize', kind: 'uups'})
+        const CMTStaking = await ethers.getContractFactory('CMTStaking');
+        const cmtStaking = await upgrades.deployProxy(CMTStaking, ['0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199'], {initializer: 'initialize', kind: 'uups'})
         await cmtStaking.deployed();
         return {CMTStaking, cmtStaking, owner, addr1, addr2, addr3, addr4};
     }

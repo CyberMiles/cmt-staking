@@ -71,16 +71,16 @@ contract CMTStaking is
         __UUPSUpgradeable_init();
 
         // 0为无效index
-        stakers[0] = Staker(address(0), 0, 0, 0);
-        validators[0] = Validator(address(0), 0, 0, false, 0);
-        stakingRecords[0] = StakingRecord(0, address(0), address(0), 0, 0, 0);
+        stakers.push(Staker(address(0), 0, 0, 0));
+        validators.push(Validator(address(0), 0, 0, false, 0));
+        stakingRecords.push(StakingRecord(0, address(0), address(0), 0, 0, 0));
 
         // 最多21个验证节点
         validatorLimit = 21;
 
         // 最少1个验证节点
         validatorIndexes[validatorAddr] = 1;
-        validators[1] = Validator(validatorAddr, 0, 0, true, block.timestamp);
+        validators.push(Validator(validatorAddr, 0, 0, true, block.timestamp));
     }
 
     receive() external payable {
@@ -138,11 +138,11 @@ contract CMTStaking is
         require(validCount > 1, "Validators must be more than 1.");
 
         uint256 validatorIndex = validatorIndexes[validatorAddr];
-        if (validatorIndex > 0) {
-            validators[validatorIndex].isValid = false;
-            validators[validatorIndex].validChangeTime = block.timestamp;
-            emit RemoveValidator(validatorAddr);
-        }
+        require(validatorIndex > 0, "Validator not Exist.");
+        validators[validatorIndex].isValid = false;
+        validators[validatorIndex].validChangeTime = block.timestamp;
+
+        emit RemoveValidator(validatorAddr);
     }
 
     // 获取质押节点数，返回（有效节点数，总节点数）
@@ -226,13 +226,15 @@ contract CMTStaking is
 
         // 更新质押记录
         uint256 stakingRecordIndex = stakingRecords.length;
-        stakingRecords[stakingRecordIndex] = StakingRecord(
-            stakingRecordIndex,
-            msg.sender,
-            validatorAddr,
-            msg.value,
-            block.timestamp,
-            0
+        stakingRecords.push(
+            StakingRecord(
+                stakingRecordIndex,
+                msg.sender,
+                validatorAddr,
+                msg.value,
+                block.timestamp,
+                0
+            )
         );
         stakingRecordIndexes[msg.sender][validatorAddr].push(
             stakingRecordIndex

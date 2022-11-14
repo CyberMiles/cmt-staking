@@ -5,9 +5,9 @@ async function main() {
     console.log("Deploying contracts with the account:", deployer.address);
     console.log("Account balance:", (await deployer.getBalance()).toString());
 
-    const CMTStaking = await ethers.getContractFactory("CMTStaking");
+    const CMTStaking = await ethers.getContractFactory('CMTStaking');
     console.log("Deploying...")
-    const proxy = await upgrades.deployProxy(CMTStaking, {initializer: 'initialize', kind: 'uups'})
+    const proxy = await upgrades.deployProxy(CMTStaking, ['0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199'], {initializer: 'initialize', kind: 'uups'})
 
     console.log("Proxy address", proxy.address)
     console.log("Waiting for deployed...")
