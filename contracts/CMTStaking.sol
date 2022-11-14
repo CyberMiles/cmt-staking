@@ -186,7 +186,7 @@ contract CMTStaking is
             validators[validatorIndex].validChangeTime
         );
     }
-    
+
     // 质押节点提取奖励
     function reward(address payable to, uint amount) public whenNotPaused {
         uint256 validatorIndex = validatorIndexes[msg.sender];
@@ -283,7 +283,7 @@ contract CMTStaking is
             .stakeingAmount;
         stakers[stakerIndex].unstakingAmount += stakingRecords[recordIndex]
             .stakeingAmount;
-        stakers[stakerIndex].unstakingAmount += stakerRewardAmount;  // 单利
+        stakers[stakerIndex].unstakingAmount += stakerRewardAmount; // 单利
 
         // 更新质押节点信息
         uint256 validatorIndex = validatorIndexes[validatorAddr];
