@@ -377,7 +377,7 @@ contract CMTStaking is
     // 计算单条质押记录的奖励，同时计算质押者的奖励和质押节点的奖励
     // 1. 质押节点有效时，质押周期 = 解质押时间 - 质押时间
     // 2. 质押节点无效时，质押周期 = 质押节点无效时间 - 质押时间
-    // 正常情况下，解质押时间 > 质押时间，质押节点无效时间 > 质押时间
+    // 正常情况下，解质押时间 > 质押时间 或者 质押节点无效时间 > 质押时间
     function computeReward(address validatorAddr, uint256 recordIndex)
         private
         view
