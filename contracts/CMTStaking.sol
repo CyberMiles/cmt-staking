@@ -41,6 +41,7 @@ contract CMTStaking is
     }
 
     struct StakingRecord {
+        uint256 index;
         address stakerAddr;
         address validatorAddr;
         uint256 stakeingAmount;
@@ -72,7 +73,7 @@ contract CMTStaking is
         // 0为无效index
         stakers[0] = Staker(address(0), 0, 0, 0);
         validators[0] = Validator(address(0), 0, 0, false, 0);
-        stakingRecords[0] = StakingRecord(address(0), address(0), 0, 0, 0);
+        stakingRecords[0] = StakingRecord(0, address(0), address(0), 0, 0, 0);
 
         // 最多21个验证节点
         validatorLimit = 21;
@@ -226,6 +227,7 @@ contract CMTStaking is
         // 更新质押记录
         uint256 stakingRecordIndex = stakingRecords.length;
         stakingRecords[stakingRecordIndex] = StakingRecord(
+            stakingRecordIndex,
             msg.sender,
             validatorAddr,
             msg.value,
@@ -242,7 +244,8 @@ contract CMTStaking is
         emit Staking(validatorAddr, msg.value);
     }
 
-    // 解质押，当质押记录的unstakingTime等于0时，此条记录处于质押状态；否则已经完成解质押
+    // 解质押，只能按单条质押记录解质押，质押记录的Index需要通过getStakingRecords获取
+    // 当质押记录的unstakingTime等于0时，此条记录处于质押状态；否则已经完成解质押
     function unstaking(address validatorAddr, uint256 recordIndex)
         public
         whenNotPaused
