@@ -114,21 +114,18 @@ contract CMTStaking is
         validatorLimit = limit;
     }
 
-    // 增加质押节点，可以重复激活
+    // 增加质押节点，不能重复激活
     function addValidator(address validatorAddr) public onlyOwner {
         require(validatorAddr != address(0), "Invalid address.");
-        require(validators.length - 1 < validatorLimit, "Validators are full.");
+
+        (uint256 validCount, ) = getValidatorCount();
+        require(validCount < validatorLimit, "Validators are full.");
 
         uint256 validatorIndex = validatorIndexes[validatorAddr];
-        if (validatorIndex > 0) {
-            validators[validatorIndex].isValid = true;
-            validators[validatorIndex].validChangeTime = block.timestamp;
-        } else {
-            validatorIndexes[validatorAddr] = validators.length;
-            validators.push(
-                Validator(validatorAddr, 0, 0, true, block.timestamp)
-            );
-        }
+        require(validatorIndex == 0, "Validator is already included.");
+
+        validatorIndexes[validatorAddr] = validators.length;
+        validators.push(Validator(validatorAddr, 0, 0, true, block.timestamp));
 
         emit AddValidator(validatorAddr);
     }
@@ -136,7 +133,9 @@ contract CMTStaking is
     // 删除质押节点
     function removeValidator(address validatorAddr) public onlyOwner {
         require(validatorAddr != address(0), "Invalid address.");
-        require(validators.length - 1 > 1, "Validators must be more than 1.");
+
+        (uint256 validCount, ) = getValidatorCount();
+        require(validCount > 1, "Validators must be more than 1.");
 
         uint256 validatorIndex = validatorIndexes[validatorAddr];
         if (validatorIndex > 0) {
@@ -266,6 +265,9 @@ contract CMTStaking is
             "Already unstaked."
         );
 
+        // 保存解质押的时间
+        stakingRecords[recordIndex].unstakingTime = block.timestamp;
+
         // 计算奖励
         uint256 stakerRewardAmount = 0;
         uint256 validatorRewardAmount = 0;
@@ -273,8 +275,6 @@ contract CMTStaking is
             validatorAddr,
             recordIndex
         );
-        // 保存解质押的时间
-        stakingRecords[recordIndex].unstakingTime = block.timestamp;
 
         // 更新质押者信息
         uint256 stakerIndex = stakerIndexes[msg.sender];
