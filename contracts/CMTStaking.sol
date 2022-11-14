@@ -410,10 +410,14 @@ contract CMTStaking is
             }
         }
 
-        // TODO: compute reward
-        uint256 stakerRewardAmount = 0;
-        uint256 validatorRewardAmount = 0;
-
+        uint256 stakerRewardAmount = (stakingRecords[recordIndex]
+            .stakeingAmount *
+            stakingInterval *
+            6) / (86400 * 100 * 365);
+        uint256 validatorRewardAmount = (stakingRecords[recordIndex]
+            .stakeingAmount *
+            stakingInterval *
+            2) / (86400 * 100 * 365);
         return (stakerRewardAmount, validatorRewardAmount);
     }
 }
