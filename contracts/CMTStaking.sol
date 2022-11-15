@@ -306,7 +306,7 @@ contract CMTStaking is
         );
     }
 
-    // 质押者取款
+    // 质押者取款，收取1%的手续费
     function withdraw(address payable to, uint amount) public whenNotPaused {
         uint256 stakerIndex = stakerIndexes[msg.sender];
         require(stakerIndex > 0, "Staker not Exist.");
@@ -316,6 +316,7 @@ contract CMTStaking is
         );
         stakers[stakerIndex].unstakingAmount -= amount;
 
+        amount = amount * 99 / 100;
         to.transfer(amount);
         emit Withdraw(amount);
     }
