@@ -64,15 +64,14 @@ contract CMTStaking is
     uint256 public activatedValidatorCount;
     uint256 public feeUntaken;
     uint256 public validatorLimit;
-
-    uint256 public constant DECIMALS = 18;
+    uint256 public minStakeAmount;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
     }
 
-    function initialize(address validatorAddr) external initializer {
+    function initialize(address validatorAddr, uint256 amount) external initializer {
         __Pausable_init();
         __Ownable_init();
         __UUPSUpgradeable_init();
@@ -90,6 +89,8 @@ contract CMTStaking is
             true,
             uint128(block.timestamp)
         );
+
+        minStakeAmount = amount;
         totalValidatorCount++;
         activatedValidatorCount++;
     }
@@ -193,7 +194,7 @@ contract CMTStaking is
     // 质押，必须确保选择的质押节点有效
     function stake(address validatorAddr) external payable whenNotPaused {
         require(
-            msg.value >= 10**DECIMALS,
+            msg.value >= minStakeAmount,
             "Staking amount must be greater equal than 1e18."
         );
 
