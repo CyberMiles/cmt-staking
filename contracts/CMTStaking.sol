@@ -64,14 +64,16 @@ contract CMTStaking is
     uint256 public activatedValidatorCount;
     uint256 public feeUntaken;
     uint256 public validatorLimit;
-    uint256 public minStakeAmount;
+
+    uint256 public immutable MINSTAKEAMOUNT;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() {
+    constructor(uint256 minStakeAmount) {
         _disableInitializers();
+        MINSTAKEAMOUNT = minStakeAmount;
     }
 
-    function initialize(address validatorAddr, uint256 amount) external initializer {
+    function initialize(address validatorAddr) external initializer {
         __Pausable_init();
         __Ownable_init();
         __UUPSUpgradeable_init();
@@ -79,20 +81,8 @@ contract CMTStaking is
         // 最多21个验证节点
         validatorLimit = 21;
 
-        require(validatorAddr != address(0), "Invalid address.");
-
         // 最少1个验证节点
-        validators[validatorAddr] = Validator(
-            validatorAddr,
-            0,
-            0,
-            true,
-            uint128(block.timestamp)
-        );
-
-        minStakeAmount = amount;
-        totalValidatorCount++;
-        activatedValidatorCount++;
+        addValidator(validatorAddr);
     }
 
     receive() external payable {
@@ -128,7 +118,7 @@ contract CMTStaking is
     }
 
     // 增加质押节点，不能重复添加
-    function addValidator(address validatorAddr) external onlyOwner {
+    function addValidator(address validatorAddr) public onlyOwner {
         require(validatorAddr != address(0), "Invalid address.");
         require(
             activatedValidatorCount < validatorLimit,
@@ -194,7 +184,7 @@ contract CMTStaking is
     // 质押，必须确保选择的质押节点有效
     function stake(address validatorAddr) external payable whenNotPaused {
         require(
-            msg.value >= minStakeAmount,
+            msg.value >= MINSTAKEAMOUNT,
             "Staking amount must be greater equal than 1e18."
         );
 
