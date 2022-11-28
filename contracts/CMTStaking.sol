@@ -12,26 +12,6 @@ contract CMTStaking is
     OwnableUpgradeable,
     UUPSUpgradeable
 {
-    event ValidatorChanged(address validator, bool isValid);
-    event Stake(
-        address indexed staker,
-        address indexed validator,
-        uint256 recordIndex,
-        uint256 amount
-    );
-    event Unstake(
-        address indexed staker,
-        address indexed validator,
-        uint256 recordIndex,
-        uint256 unstakingAmount,
-        uint256 stakerRewardAmount,
-        uint256 validatorRewardAmount
-    );
-    event Withdrawal(address indexed from, address indexed to, uint256 amount);
-    event Received(address indexed sender, uint256 amount);
-    event FeeCharged(uint256 amount);
-    event FeeCollected(address indexed to, uint256 amount);
-
     struct Validator {
         address validatorAddr;
         uint256 stakingAmount;
@@ -43,7 +23,6 @@ contract CMTStaking is
     struct Staker {
         address stakerAddr;
         uint256 stakingAmount;
-        uint256 unstakingAmount;
     }
 
     struct StakingRecord {
@@ -59,18 +38,48 @@ contract CMTStaking is
     // staker => validator => staking records
     mapping(address => mapping(address => StakingRecord[]))
         public stakingRecords;
-    uint256 public stakingTotalAmount;
+    uint256 public totalStakingAmount;
     uint256 public totalValidatorCount;
     uint256 public activatedValidatorCount;
     uint256 public feeUntaken;
     uint256 public validatorLimit;
 
-    uint256 public immutable MINSTAKEAMOUNT;
+    uint256 public immutable MIN_STAKE_AMOUNT;
+
+    event Received(address indexed sender, uint256 amount);
+    event ValidatorChanged(address validator, bool isValid);
+    event Stake(
+        address indexed staker,
+        address indexed validator,
+        uint256 recordIndex,
+        uint256 amount
+    );
+    event Unstake(
+        address indexed staker,
+        address indexed validator,
+        uint256 recordIndex,
+        uint256 unstakingAmount,
+        uint256 stakerRewardAmount,
+        uint256 validatorRewardAmount,
+        address indexed recipient,
+        uint256 feeAmount
+    );
+    event ValidatorWithdrawal(
+        address indexed validator,
+        address indexed recipient,
+        uint256 amount
+    );
+    event FeeWithdrawal(
+        address indexed operator,
+        address indexed recipient,
+        uint256 amount
+    );
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor(uint256 minStakeAmount) {
         _disableInitializers();
-        MINSTAKEAMOUNT = minStakeAmount;
+        require(minStakeAmount >= 10 ** 9, "Invalid minimal stake amount.");
+        MIN_STAKE_AMOUNT = minStakeAmount;
     }
 
     function initialize(address validatorAddr) external initializer {
@@ -97,11 +106,9 @@ contract CMTStaking is
         _unpause();
     }
 
-    function _authorizeUpgrade(address newImplementation)
-        internal
-        override
-        onlyOwner
-    {}
+    function _authorizeUpgrade(
+        address newImplementation
+    ) internal override onlyOwner {}
 
     function getVersion() external pure returns (uint256) {
         return 1;
@@ -162,19 +169,20 @@ contract CMTStaking is
     }
 
     // 质押节点提取奖励
-    function reward(address payable to, uint256 amount) external whenNotPaused {
+    function validatorWithdraw(
+        address payable recipient,
+        uint256 amount
+    ) external whenNotPaused {
         Validator storage validator = validators[msg.sender];
 
         require(
             amount > 0 && amount <= validator.rewardAmount,
             "Invalid amount or insufficient balance."
         );
-        unchecked {
-            validator.rewardAmount -= amount;
-        }
+        validator.rewardAmount -= amount;
 
-        sendValue(to, amount);
-        emit Withdrawal(msg.sender, to, amount);
+        emit ValidatorWithdrawal(msg.sender, recipient, amount);
+        sendValue(recipient, amount);
     }
 
     //////////////////////////////
@@ -184,8 +192,8 @@ contract CMTStaking is
     // 质押，必须确保选择的质押节点有效
     function stake(address validatorAddr) external payable whenNotPaused {
         require(
-            msg.value >= MINSTAKEAMOUNT,
-            "Staking amount must be greater equal than 1e18."
+            msg.value >= MIN_STAKE_AMOUNT,
+            "Staking amount must >= MIN_STAKE_AMOUNT."
         );
 
         // 更新质押节点信息
@@ -215,17 +223,18 @@ contract CMTStaking is
         );
 
         // 更新总质押量
-        stakingTotalAmount += msg.value;
+        totalStakingAmount += msg.value;
 
         emit Stake(msg.sender, validatorAddr, recordIndex, msg.value);
     }
 
     // 解质押，只能按单条质押记录解质押，recordIndex可以从Stake事件或stakingRecords获取
     // 当质押记录的unstakingTime等于0时，此条记录处于质押状态；否则已经完成解质押
-    function unstake(address validatorAddr, uint256 recordIndex)
-        external
-        whenNotPaused
-    {
+    function unstake(
+        address validatorAddr,
+        uint256 recordIndex,
+        address payable recipient
+    ) external whenNotPaused {
         StakingRecord storage stakingRecord = stakingRecords[msg.sender][
             validatorAddr
         ][recordIndex];
@@ -247,92 +256,70 @@ contract CMTStaking is
             uint256 validatorRewardAmount
         ) = computeReward(stakingRecord);
 
+        uint256 stakingAmount = stakingRecord.stakingAmount;
+
         // 更新质押者信息
-        Staker storage staker = stakers[msg.sender];
-        staker.stakingAmount -= stakingRecord.stakingAmount;
-        staker.unstakingAmount += stakingRecord.stakingAmount;
-        staker.unstakingAmount += stakerRewardAmount; // 单利
+        stakers[msg.sender].stakingAmount -= stakingAmount;
 
         // 更新质押节点信息
         Validator storage validator = validators[validatorAddr];
-        validator.stakingAmount -= stakingRecord.stakingAmount;
+        validator.stakingAmount -= stakingAmount;
         validator.rewardAmount += validatorRewardAmount;
 
         // 更新总质押量
-        stakingTotalAmount -= stakingRecord.stakingAmount;
+        totalStakingAmount -= stakingAmount;
+
+        uint256 unstakedValue = stakingAmount + stakerRewardAmount;
+        uint256 stakerWithdrawAmount = (unstakedValue * 99) / 100;
+        uint256 fee = unstakedValue - stakerWithdrawAmount;
+        feeUntaken += fee;
 
         emit Unstake(
             msg.sender,
             validatorAddr,
             recordIndex,
-            stakingRecord.stakingAmount,
+            stakingAmount,
             stakerRewardAmount,
-            validatorRewardAmount
+            validatorRewardAmount,
+            recipient,
+            fee
         );
-    }
 
-    // 质押者取款（本金+奖励），收取1%的手续费
-    function withdraw(address payable to, uint256 amount)
-        external
-        whenNotPaused
-    {
-        Staker storage staker = stakers[msg.sender];
-        require(
-            amount > 0 && amount <= staker.unstakingAmount,
-            "Invalid amount or insufficient balance."
-        );
-        uint256 withdrawAmount;
-        uint256 fee;
-        unchecked {
-            staker.unstakingAmount -= amount;
-            withdrawAmount = (amount * 99) / 100;
-            fee = amount - withdrawAmount;
-        }
-        feeUntaken += fee;
-        emit FeeCharged(fee);
-        sendValue(to, withdrawAmount);
-        emit Withdrawal(msg.sender, to, withdrawAmount);
+        sendValue(recipient, stakerWithdrawAmount);
     }
 
     // 合约owner取走手续费
-    function collectFee(address payable to, uint256 amount) external onlyOwner {
-        require(to != address(0), "Invalid address.");
+    function withdrawFee(
+        address payable recipient,
+        uint256 amount
+    ) external onlyOwner {
+        require(recipient != address(0), "Invalid address.");
         require(
             amount > 0 && amount <= feeUntaken,
             "Invalid amount or insufficient balance."
         );
-        unchecked {
-            feeUntaken -= amount;
-        }
-        sendValue(to, amount);
-        emit FeeCollected(to, amount);
+        feeUntaken -= amount;
+        emit FeeWithdrawal(msg.sender, recipient, amount);
+        sendValue(recipient, amount);
     }
 
     // 计算单条质押记录的奖励，同时计算质押者的奖励和质押节点的奖励
     // 1. 质押节点有效时，质押周期 = 解质押时间 - 质押时间
     // 2. 质押节点无效时，质押周期 = 质押节点无效时间 - 质押时间
     // 正常情况下，解质押时间 > 质押时间 或者 质押节点无效时间 > 质押时间
-    function computeReward(StakingRecord memory stakingRecord)
-        private
-        view
-        returns (uint256, uint256)
-    {
-        uint256 stakingInterval = 0;
+    function computeReward(
+        StakingRecord memory stakingRecord
+    ) private view returns (uint256, uint256) {
         Validator memory validator = validators[stakingRecord.validatorAddr];
 
+        uint256 rewardEndTime;
         if (validator.isValid) {
-            require(
-                stakingRecord.unstakingTime > stakingRecord.stakingTime,
-                "Unstake time error."
-            );
-            stakingInterval =
-                stakingRecord.unstakingTime -
-                stakingRecord.stakingTime;
+            rewardEndTime = stakingRecord.unstakingTime;
         } else {
-            stakingInterval =
-                validator.validChangeTime -
-                stakingRecord.stakingTime;
+            rewardEndTime = validator.validChangeTime;
         }
+
+        uint256 stakingInterval = rewardEndTime - stakingRecord.stakingTime;
 
         uint256 stakerRewardAmount = (stakingRecord.stakingAmount *
             stakingInterval *
