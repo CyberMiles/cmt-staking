@@ -406,8 +406,8 @@ describe('CMTStaking contract', function () {
             await cmtStaking.connect(staker).stake(validator1.address, { value: stakeAmount });
 
             // travel to 100 day later
-            const ONE_DAY = 60 * 60 * 24 * 100;
-            await time.increase(ONE_DAY - 1);
+            const ONE_HUNDRED_DAY = 60 * 60 * 24 * 100;
+            await time.increase(ONE_HUNDRED_DAY - 1);
 
             // unstake
             await expect(cmtStaking.connect(staker).unstake(validator1.address, 0, staker.address)).to.be.revertedWith("Failed to send native token.");
