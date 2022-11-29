@@ -6,7 +6,7 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-contract CMTStaking is
+contract CMTStakingMock is
     Initializable,
     PausableUpgradeable,
     OwnableUpgradeable,
@@ -111,7 +111,7 @@ contract CMTStaking is
     ) internal override onlyOwner {}
 
     function getVersion() external pure returns (uint256) {
-        return 1;
+        return 2;
     }
 
     /////////////////////////////////

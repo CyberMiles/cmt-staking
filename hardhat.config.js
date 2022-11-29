@@ -24,7 +24,10 @@ module.exports = {
             gas: 10e6,
         },
         hardhat: {
-            chainId: 1337
+            chainId: 1337,
+            accounts: {
+                count: 40
+            }
         }
     },
     etherscan: {
