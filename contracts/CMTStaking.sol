@@ -87,10 +87,10 @@ contract CMTStaking is
         __Ownable_init();
         __UUPSUpgradeable_init();
 
-        // 最多21个验证节点
+        // default maximum 21 validators
         validatorLimit = 21;
 
-        // 最少1个验证节点
+        // minimum 1 validator
         addValidator(validatorAddr);
     }
 
@@ -118,13 +118,13 @@ contract CMTStaking is
     //          Validator          //
     /////////////////////////////////
 
-    // 设置质押节点最大值
+    // set maximum num of validators
     function setValidatorLimit(uint256 limit) external onlyOwner {
         require(limit >= activatedValidatorCount, "Invalid limit value.");
         validatorLimit = limit;
     }
 
-    // 增加质押节点，不能重复添加
+    // add validator
     function addValidator(address validatorAddr) public onlyOwner {
         require(validatorAddr != address(0), "Invalid address.");
         require(
@@ -149,7 +149,7 @@ contract CMTStaking is
         emit ValidatorChanged(validatorAddr, true);
     }
 
-    // 删除质押节点
+    // deactivate validator
     function removeValidator(address validatorAddr) external onlyOwner {
         require(
             activatedValidatorCount > 1,
@@ -168,7 +168,7 @@ contract CMTStaking is
         emit ValidatorChanged(validatorAddr, false);
     }
 
-    // 质押节点提取奖励
+    // validator withdraw its rewards
     function validatorWithdraw(
         address payable recipient,
         uint256 amount
@@ -189,19 +189,19 @@ contract CMTStaking is
     //          Staker          //
     //////////////////////////////
 
-    // 质押，必须确保选择的质押节点有效
+    // stake into a valid validator
     function stake(address validatorAddr) external payable whenNotPaused {
         require(
             msg.value >= MIN_STAKE_AMOUNT,
             "Staking amount must >= MIN_STAKE_AMOUNT."
         );
 
-        // 更新质押节点信息
+        // update validator info
         Validator storage validator = validators[validatorAddr];
         require(validator.isValid, "Validator not exist or has been removed.");
         validator.stakingAmount += msg.value;
 
-        // 更新质押者信息
+        // update staker info
         Staker storage staker = stakers[msg.sender];
         if (staker.stakerAddr != address(0)) {
             staker.stakingAmount += msg.value;
@@ -210,7 +210,7 @@ contract CMTStaking is
             staker.stakingAmount = msg.value;
         }
 
-        // 更新质押记录
+        // add staking record
         uint256 recordIndex = stakingRecords[msg.sender][validatorAddr].length;
         stakingRecords[msg.sender][validatorAddr].push(
             StakingRecord(
@@ -222,14 +222,15 @@ contract CMTStaking is
             )
         );
 
-        // 更新总质押量
+        // update total staking amount
         totalStakingAmount += msg.value;
 
         emit Stake(msg.sender, validatorAddr, recordIndex, msg.value);
     }
 
-    // 解质押，只能按单条质押记录解质押，recordIndex可以从Stake事件或stakingRecords获取
-    // 当质押记录的unstakingTime等于0时，此条记录处于质押状态；否则已经完成解质押
+    // can only unstake with single stakingRecord
+    // RecordIndex can be found from Stake event or state variable stakingRecords
+    // A stakingRecord is still under staked when unstakingTime equals 0, vice versa
     function unstake(
         address validatorAddr,
         uint256 recordIndex,
@@ -243,10 +244,10 @@ contract CMTStaking is
             "Staking record is already unstaked."
         );
 
-        // 保存解质押的时间
+        // update unstaking time
         stakingRecord.unstakingTime = uint128(block.timestamp);
 
-        // 计算奖励
+        // calculate staking reward for staker and validator
         (
             uint256 stakerRewardAmount,
             uint256 validatorRewardAmount
@@ -254,17 +255,18 @@ contract CMTStaking is
 
         uint256 stakingAmount = stakingRecord.stakingAmount;
 
-        // 更新质押者信息
+        // update staker info
         stakers[msg.sender].stakingAmount -= stakingAmount;
 
-        // 更新质押节点信息
+        // update validator info
         Validator storage validator = validators[validatorAddr];
         validator.stakingAmount -= stakingAmount;
         validator.rewardAmount += validatorRewardAmount;
 
-        // 更新总质押量
+        // update total staking amount
         totalStakingAmount -= stakingAmount;
 
+        // calculate and charge fee from staker
         uint256 unstakedValue = stakingAmount + stakerRewardAmount;
         uint256 stakerWithdrawAmount = (unstakedValue * 99) / 100;
         uint256 fee = unstakedValue - stakerWithdrawAmount;
@@ -281,10 +283,11 @@ contract CMTStaking is
             fee
         );
 
+        // send (amount + reward) after fee deducted
         sendValue(recipient, stakerWithdrawAmount);
     }
 
-    // 合约owner取走手续费
+    // contract owner withdraw collected fee
     function withdrawFee(
         address payable recipient,
         uint256 amount
@@ -299,10 +302,12 @@ contract CMTStaking is
         sendValue(recipient, amount);
     }
 
-    // 计算单条质押记录的奖励，同时计算质押者的奖励和质押节点的奖励
-    // 1. 质押节点有效时，质押周期 = 解质押时间 - 质押时间
-    // 2. 质押节点无效时，质押周期 = 质押节点无效时间 - 质押时间
-    // 正常情况下，解质押时间 > 质押时间 或者 质押节点无效时间 > 质押时间
+    // calculate reward of staker and validator for single stakingRecord when unstaking
+    // 1. when validator is valid: stakingInterval = unstakingTs - stakingTs
+    // 2. when validator is invalid: stakingInterval = invalidTs - stakingTs
+    // 3. APY 6% reward for staker
+    // 4. APY 2% reward for validator
+    // 5. reward = stakingAmount * stakingTime * APY / oneYear
     function computeReward(
         StakingRecord memory stakingRecord
     ) private view returns (uint256, uint256) {

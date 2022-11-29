@@ -3,10 +3,10 @@ require("@openzeppelin/hardhat-upgrades");
 
 require("dotenv").config();
 
-const ALCHEMY_API_KEY = "cKfSSw9dViP7kNXAzXsTS4uUj0EZbKw8";
-const ETHERSCAN_API_KEY = "QA8SAPQZVKZJ6W684VQZJ3PZH6AB5TX9BA"
-const BSCSCAN_API_KEY = "N7IS8JC3BRGM2G667A2N3V5IZHH3XUKG84"
-const PRIVATE_KEY = process.env.PRIVATEKEY;
+const ALCHEMY_API_KEY = process.env.ALCHEMY_API_KEY;
+const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY;
+const BSCSCAN_API_KEY = process.env.BSCSCAN_API_KEY;
+const PRIVATE_KEY = process.env.PRIVATE_KEY;
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
