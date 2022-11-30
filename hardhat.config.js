@@ -16,6 +16,11 @@ module.exports = {
         },
         hardhat: {
             chainId: 1337
+        },
+        cmt: {
+            url: 'http://3.80.188.227:8545',
+            chainId: 20221130,
+            accounts: [GOERLI_PRIVATE_KEY]
         }
     },
     etherscan: {
