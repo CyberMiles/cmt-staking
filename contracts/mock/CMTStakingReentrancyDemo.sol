@@ -14,7 +14,6 @@ contract CMTStakingReentrancyDemo is
 {
     struct Validator {
         address validatorAddr;
-        uint256 stakingAmount;
         uint256 rewardAmount;
         bool isValid;
         uint128 validChangeTime;
@@ -22,7 +21,6 @@ contract CMTStakingReentrancyDemo is
 
     struct Staker {
         address stakerAddr;
-        uint256 stakingAmount;
     }
 
     struct StakingRecord {
@@ -78,7 +76,7 @@ contract CMTStakingReentrancyDemo is
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor(uint256 minStakeAmount) {
         _disableInitializers();
-        require(minStakeAmount >= 10**9, "Invalid minimal stake amount.");
+        require(minStakeAmount >= 10 ** 9, "Invalid minimal stake amount.");
         MIN_STAKE_AMOUNT = minStakeAmount;
     }
 
@@ -106,11 +104,9 @@ contract CMTStakingReentrancyDemo is
         _unpause();
     }
 
-    function _authorizeUpgrade(address newImplementation)
-        internal
-        override
-        onlyOwner
-    {}
+    function _authorizeUpgrade(
+        address newImplementation
+    ) internal override onlyOwner {}
 
     function getVersion() external pure returns (uint256) {
         return 1;
@@ -141,7 +137,6 @@ contract CMTStakingReentrancyDemo is
         validators[validatorAddr] = Validator(
             validatorAddr,
             0,
-            0,
             true,
             uint128(block.timestamp)
         );
@@ -171,20 +166,20 @@ contract CMTStakingReentrancyDemo is
     }
 
     // validator withdraw its rewards
-    function validatorWithdraw(address payable recipient, uint256 amount)
-        external
-        whenNotPaused
-    {
+    function validatorWithdraw(
+        address payable recipient,
+        uint256 amount
+    ) external whenNotPaused {
         Validator storage validator = validators[msg.sender];
 
         require(
             amount > 0 && amount <= validator.rewardAmount,
             "Invalid amount or insufficient balance."
         );
-        sendValue(recipient, amount);
         validator.rewardAmount -= amount;
 
         emit ValidatorWithdrawal(msg.sender, recipient, amount);
+        sendValue(recipient, amount);
     }
 
     //////////////////////////////
@@ -201,15 +196,12 @@ contract CMTStakingReentrancyDemo is
         // update validator info
         Validator storage validator = validators[validatorAddr];
         require(validator.isValid, "Validator not exist or has been removed.");
-        validator.stakingAmount += msg.value;
 
         // update staker info
         Staker storage staker = stakers[msg.sender];
         if (staker.stakerAddr != address(0)) {
-            staker.stakingAmount += msg.value;
         } else {
             staker.stakerAddr = msg.sender;
-            staker.stakingAmount = msg.value;
         }
 
         // add staking record
@@ -265,12 +257,9 @@ contract CMTStakingReentrancyDemo is
         // update unstaking time
         stakingRecord.unstakingTime = uint128(block.timestamp);
 
-        // update staker info
-        stakers[msg.sender].stakingAmount -= stakingAmount;
 
         // update validator info
         Validator storage validator = validators[validatorAddr];
-        validator.stakingAmount -= stakingAmount;
         validator.rewardAmount += validatorRewardAmount;
 
         // update total staking amount
@@ -289,18 +278,18 @@ contract CMTStakingReentrancyDemo is
     }
 
     // contract owner withdraw collected fee
-    function withdrawFee(address payable recipient, uint256 amount)
-        external
-        onlyOwner
-    {
+    function withdrawFee(
+        address payable recipient,
+        uint256 amount
+    ) external onlyOwner {
         require(recipient != address(0), "Invalid address.");
         require(
             amount > 0 && amount <= feeUntaken,
             "Invalid amount or insufficient balance."
         );
-        sendValue(recipient, amount);
         feeUntaken -= amount;
         emit FeeWithdrawal(msg.sender, recipient, amount);
+        sendValue(recipient, amount);
     }
 
     // calculate reward of staker and validator for single stakingRecord when unstaking
