@@ -86,6 +86,7 @@ contract CMTStaking is
     }
 
     function initialize(address validatorAddr) external initializer {
+        __ReentrancyGuard_init();
         __Pausable_init();
         __Ownable_init();
         __UUPSUpgradeable_init();
