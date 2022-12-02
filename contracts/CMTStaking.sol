@@ -1,13 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 
 contract CMTStaking is
     Initializable,
+    // not necessary now but we add ReentrancyGuard in advance to improve security of future updates
+    ReentrancyGuardUpgradeable,
     PausableUpgradeable,
     OwnableUpgradeable,
     UUPSUpgradeable
@@ -172,7 +175,7 @@ contract CMTStaking is
     function validatorWithdraw(
         address payable recipient,
         uint256 amount
-    ) external whenNotPaused {
+    ) external nonReentrant whenNotPaused {
         Validator storage validator = validators[msg.sender];
 
         require(
@@ -235,7 +238,7 @@ contract CMTStaking is
         address validatorAddr,
         uint256 recordIndex,
         address payable recipient
-    ) external whenNotPaused {
+    ) external nonReentrant whenNotPaused {
         StakingRecord storage stakingRecord = stakingRecords[msg.sender][
             validatorAddr
         ][recordIndex];
@@ -291,7 +294,7 @@ contract CMTStaking is
     function withdrawFee(
         address payable recipient,
         uint256 amount
-    ) external onlyOwner {
+    ) external nonReentrant onlyOwner {
         require(recipient != address(0), "Invalid address.");
         require(
             amount > 0 && amount <= feeUntaken,
