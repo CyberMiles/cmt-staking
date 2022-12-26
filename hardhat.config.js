@@ -23,6 +23,12 @@ module.exports = {
             accounts: [PRIVATE_KEY],
             gas: 10e6,
         },
+        cmt_new: {
+            url: `http://3.80.188.227`,
+            chainId: 20221130,
+            accounts: [PRIVATE_KEY],
+            gas: 10e6,
+        },
         hardhat: {
             chainId: 1337,
             accounts: {
