@@ -1,4 +1,4 @@
-const { ethers, upgrades } = require("hardhat");
+const { ethers, upgrades, run } = require("hardhat");
 
 async function main() {
     const [deployer] = await ethers.getSigners();
@@ -14,11 +14,20 @@ async function main() {
     const proxy = await upgrades.deployProxy(CMTStaking, initializeParams, { initializer: 'initialize', kind: 'uups', constructorArgs: constructorParams, unsafeAllow: ['state-variable-immutable'] })
 
     console.log("Proxy address", proxy.address)
-    console.log("Waiting for deployed...")
+    console.log("Waiting for deployed ...")
     await proxy.deployed();
 
     const implAddress = await upgrades.erc1967.getImplementationAddress(proxy.address)
     console.log("Implementation address", implAddress)
+
+    try {
+        await run("verify:verify", {
+            address: proxy.address,
+            constructorArguments: constructorParams
+        });
+    } catch (error) {
+        console.log(error);
+    }
 }
 
 main().catch((error) => {

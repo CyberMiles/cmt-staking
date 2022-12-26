@@ -42,4 +42,10 @@ after customized deployment params, please run the following
 npx hardhat run scripts/deploy --network xxx
 ```
 
+## How to upgrade
+
+```
+npx hardhat run scripts/upgrade --network xxx
+```
+
 

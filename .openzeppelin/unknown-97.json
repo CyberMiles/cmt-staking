@@ -2,30 +2,15 @@
   "manifestVersion": "3.2",
   "proxies": [
     {
-      "address": "0x1e36072CB3A41DC4d1a252666fAc157095e7A9e2",
-      "txHash": "0xaa236281a8f767e315694fe14d9f91bb1b03c80070abe2a98bc57b7ef039d294",
-      "kind": "uups"
-    },
-    {
-      "address": "0xFD3944220a4E551307459b6DE02F0Aa350CCE45e",
-      "txHash": "0x2330e815d395bdb1d1cdbfd04049f590bb61fdbbff7137d6cf007f25e3f785aa",
-      "kind": "uups"
-    },
-    {
-      "address": "0xdcE071e26759fc9E0eA40D70d6F83E19aba3b8Cd",
-      "txHash": "0xe487a16d3e8a48c28a8d2244764de326dcc3ba1594ece909767e269b2950e3f4",
-      "kind": "uups"
-    },
-    {
-      "address": "0x420386B1e7b719bC38C1fb1Be21C7E8d5E1b2AA4",
-      "txHash": "0x05f1126f743d721567d6881ab2935aedd50b2572827b0c2b95ab66cecb37c66b",
+      "address": "0x421530C7C110ab1e33305Cc7Af33eFb65669e233",
+      "txHash": "0xea08aadc786e721f5ddaef69ae84ce944feef6789f0c71c7a5ccc7cfaeb16c9c",
       "kind": "uups"
     }
   ],
   "impls": {
-    "dd0b2e5d4d877df3f5e4eb6e55bd48bb98d4845bad3b20f4edffc8563523672f": {
-      "address": "0xEB89AE977466660F71809ad5b879C97Bcc204a52",
-      "txHash": "0x1f40dcabf9adc07a05b06eb5f764505ea44457e85215d7730d9dbf2c92d8b982",
+    "8e10f827361e3cf0040151293514086ab9e18659ab5fc2632d8939eceb08c46a": {
+      "address": "0x2A1fddCb30b51aEF301783Ac72A3cD44AA7429a8",
+      "txHash": "0x2925d470a5dcccecb9055587367c718ce94b3fa92466969eb3406600acf943dd",
       "layout": {
         "solcVersion": "0.8.4",
         "storage": [
@@ -47,9 +32,25 @@
             "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:67"
           },
           {
-            "label": "__gap",
+            "label": "_status",
             "offset": 0,
             "slot": "1",
+            "type": "t_uint256",
+            "contract": "ReentrancyGuardUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol:38"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "ReentrancyGuardUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol:74"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "51",
             "type": "t_array(t_uint256)50_storage",
             "contract": "ContextUpgradeable",
             "src": "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol:36"
@@ -57,7 +58,7 @@
           {
             "label": "_paused",
             "offset": 0,
-            "slot": "51",
+            "slot": "101",
             "type": "t_bool",
             "contract": "PausableUpgradeable",
             "src": "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol:29"
@@ -65,7 +66,7 @@
           {
             "label": "__gap",
             "offset": 0,
-            "slot": "52",
+            "slot": "102",
             "type": "t_array(t_uint256)49_storage",
             "contract": "PausableUpgradeable",
             "src": "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol:116"
@@ -73,7 +74,7 @@
           {
             "label": "_owner",
             "offset": 0,
-            "slot": "101",
+            "slot": "151",
             "type": "t_address",
             "contract": "OwnableUpgradeable",
             "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:22"
@@ -81,7 +82,7 @@
           {
             "label": "__gap",
             "offset": 0,
-            "slot": "102",
+            "slot": "152",
             "type": "t_array(t_uint256)49_storage",
             "contract": "OwnableUpgradeable",
             "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:94"
@@ -89,7 +90,7 @@
           {
             "label": "__gap",
             "offset": 0,
-            "slot": "151",
+            "slot": "201",
             "type": "t_array(t_uint256)50_storage",
             "contract": "ERC1967UpgradeUpgradeable",
             "src": "@openzeppelin/contracts-upgradeable/proxy/ERC1967/ERC1967UpgradeUpgradeable.sol:211"
@@ -97,7 +98,7 @@
           {
             "label": "__gap",
             "offset": 0,
-            "slot": "201",
+            "slot": "251",
             "type": "t_array(t_uint256)50_storage",
             "contract": "UUPSUpgradeable",
             "src": "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol:107"
@@ -105,658 +106,66 @@
           {
             "label": "stakers",
             "offset": 0,
-            "slot": "251",
-            "type": "t_mapping(t_address,t_struct(Staker)1365_storage)",
-            "contract": "CMTStaking",
-            "src": "contracts/CMTStaking.sol:57"
-          },
-          {
-            "label": "validators",
-            "offset": 0,
-            "slot": "252",
-            "type": "t_mapping(t_address,t_struct(Validator)1358_storage)",
-            "contract": "CMTStaking",
-            "src": "contracts/CMTStaking.sol:58"
-          },
-          {
-            "label": "stakingRecords",
-            "offset": 0,
-            "slot": "253",
-            "type": "t_mapping(t_address,t_mapping(t_address,t_array(t_struct(StakingRecord)1376_storage)dyn_storage))",
-            "contract": "CMTStaking",
-            "src": "contracts/CMTStaking.sol:60"
-          },
-          {
-            "label": "stakingTotalAmount",
-            "offset": 0,
-            "slot": "254",
-            "type": "t_uint256",
-            "contract": "CMTStaking",
-            "src": "contracts/CMTStaking.sol:62"
-          },
-          {
-            "label": "totalValidatorCount",
-            "offset": 0,
-            "slot": "255",
-            "type": "t_uint256",
-            "contract": "CMTStaking",
-            "src": "contracts/CMTStaking.sol:63"
-          },
-          {
-            "label": "activatedValidatorCount",
-            "offset": 0,
-            "slot": "256",
-            "type": "t_uint256",
-            "contract": "CMTStaking",
-            "src": "contracts/CMTStaking.sol:64"
-          },
-          {
-            "label": "feeUntaken",
-            "offset": 0,
-            "slot": "257",
-            "type": "t_uint256",
-            "contract": "CMTStaking",
-            "src": "contracts/CMTStaking.sol:65"
-          },
-          {
-            "label": "validatorLimit",
-            "offset": 0,
-            "slot": "258",
-            "type": "t_uint256",
-            "contract": "CMTStaking",
-            "src": "contracts/CMTStaking.sol:66"
-          },
-          {
-            "label": "minStakeAmount",
-            "offset": 0,
-            "slot": "259",
-            "type": "t_uint256",
-            "contract": "CMTStaking",
-            "src": "contracts/CMTStaking.sol:67"
-          }
-        ],
-        "types": {
-          "t_address": {
-            "label": "address",
-            "numberOfBytes": "20"
-          },
-          "t_array(t_struct(StakingRecord)1376_storage)dyn_storage": {
-            "label": "struct CMTStaking.StakingRecord[]",
-            "numberOfBytes": "32"
-          },
-          "t_array(t_uint256)49_storage": {
-            "label": "uint256[49]",
-            "numberOfBytes": "1568"
-          },
-          "t_array(t_uint256)50_storage": {
-            "label": "uint256[50]",
-            "numberOfBytes": "1600"
-          },
-          "t_bool": {
-            "label": "bool",
-            "numberOfBytes": "1"
-          },
-          "t_mapping(t_address,t_array(t_struct(StakingRecord)1376_storage)dyn_storage)": {
-            "label": "mapping(address => struct CMTStaking.StakingRecord[])",
-            "numberOfBytes": "32"
-          },
-          "t_mapping(t_address,t_mapping(t_address,t_array(t_struct(StakingRecord)1376_storage)dyn_storage))": {
-            "label": "mapping(address => mapping(address => struct CMTStaking.StakingRecord[]))",
-            "numberOfBytes": "32"
-          },
-          "t_mapping(t_address,t_struct(Staker)1365_storage)": {
-            "label": "mapping(address => struct CMTStaking.Staker)",
-            "numberOfBytes": "32"
-          },
-          "t_mapping(t_address,t_struct(Validator)1358_storage)": {
-            "label": "mapping(address => struct CMTStaking.Validator)",
-            "numberOfBytes": "32"
-          },
-          "t_struct(Staker)1365_storage": {
-            "label": "struct CMTStaking.Staker",
-            "members": [
-              {
-                "label": "stakerAddr",
-                "type": "t_address",
-                "offset": 0,
-                "slot": "0"
-              },
-              {
-                "label": "stakingAmount",
-                "type": "t_uint256",
-                "offset": 0,
-                "slot": "1"
-              },
-              {
-                "label": "unstakingAmount",
-                "type": "t_uint256",
-                "offset": 0,
-                "slot": "2"
-              }
-            ],
-            "numberOfBytes": "96"
-          },
-          "t_struct(StakingRecord)1376_storage": {
-            "label": "struct CMTStaking.StakingRecord",
-            "members": [
-              {
-                "label": "stakerAddr",
-                "type": "t_address",
-                "offset": 0,
-                "slot": "0"
-              },
-              {
-                "label": "validatorAddr",
-                "type": "t_address",
-                "offset": 0,
-                "slot": "1"
-              },
-              {
-                "label": "stakingAmount",
-                "type": "t_uint256",
-                "offset": 0,
-                "slot": "2"
-              },
-              {
-                "label": "stakingTime",
-                "type": "t_uint128",
-                "offset": 0,
-                "slot": "3"
-              },
-              {
-                "label": "unstakingTime",
-                "type": "t_uint128",
-                "offset": 16,
-                "slot": "3"
-              }
-            ],
-            "numberOfBytes": "128"
-          },
-          "t_struct(Validator)1358_storage": {
-            "label": "struct CMTStaking.Validator",
-            "members": [
-              {
-                "label": "validatorAddr",
-                "type": "t_address",
-                "offset": 0,
-                "slot": "0"
-              },
-              {
-                "label": "stakingAmount",
-                "type": "t_uint256",
-                "offset": 0,
-                "slot": "1"
-              },
-              {
-                "label": "rewardAmount",
-                "type": "t_uint256",
-                "offset": 0,
-                "slot": "2"
-              },
-              {
-                "label": "isValid",
-                "type": "t_bool",
-                "offset": 0,
-                "slot": "3"
-              },
-              {
-                "label": "validChangeTime",
-                "type": "t_uint128",
-                "offset": 1,
-                "slot": "3"
-              }
-            ],
-            "numberOfBytes": "128"
-          },
-          "t_uint128": {
-            "label": "uint128",
-            "numberOfBytes": "16"
-          },
-          "t_uint256": {
-            "label": "uint256",
-            "numberOfBytes": "32"
-          },
-          "t_uint8": {
-            "label": "uint8",
-            "numberOfBytes": "1"
-          }
-        }
-      }
-    },
-    "850f75fa36b130d0f3dc10e2cb01787d2cbed499faaecb9ae76fef5300bb5323": {
-      "address": "0x5fff3421cF8F0Bdf856b5479F3C7a9592afFb691",
-      "txHash": "0xafe97d4d0655bca0cda47fbbe87a4d45eb4d49ec898200f083288a6a2d1fa404",
-      "layout": {
-        "solcVersion": "0.8.4",
-        "storage": [
-          {
-            "label": "_initialized",
-            "offset": 0,
-            "slot": "0",
-            "type": "t_uint8",
-            "contract": "Initializable",
-            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:62",
-            "retypedFrom": "bool"
-          },
-          {
-            "label": "_initializing",
-            "offset": 1,
-            "slot": "0",
-            "type": "t_bool",
-            "contract": "Initializable",
-            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:67"
-          },
-          {
-            "label": "__gap",
-            "offset": 0,
-            "slot": "1",
-            "type": "t_array(t_uint256)50_storage",
-            "contract": "ContextUpgradeable",
-            "src": "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol:36"
-          },
-          {
-            "label": "_paused",
-            "offset": 0,
-            "slot": "51",
-            "type": "t_bool",
-            "contract": "PausableUpgradeable",
-            "src": "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol:29"
-          },
-          {
-            "label": "__gap",
-            "offset": 0,
-            "slot": "52",
-            "type": "t_array(t_uint256)49_storage",
-            "contract": "PausableUpgradeable",
-            "src": "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol:116"
-          },
-          {
-            "label": "_owner",
-            "offset": 0,
-            "slot": "101",
-            "type": "t_address",
-            "contract": "OwnableUpgradeable",
-            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:22"
-          },
-          {
-            "label": "__gap",
-            "offset": 0,
-            "slot": "102",
-            "type": "t_array(t_uint256)49_storage",
-            "contract": "OwnableUpgradeable",
-            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:94"
-          },
-          {
-            "label": "__gap",
-            "offset": 0,
-            "slot": "151",
-            "type": "t_array(t_uint256)50_storage",
-            "contract": "ERC1967UpgradeUpgradeable",
-            "src": "@openzeppelin/contracts-upgradeable/proxy/ERC1967/ERC1967UpgradeUpgradeable.sol:211"
-          },
-          {
-            "label": "__gap",
-            "offset": 0,
-            "slot": "201",
-            "type": "t_array(t_uint256)50_storage",
-            "contract": "UUPSUpgradeable",
-            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol:107"
-          },
-          {
-            "label": "stakers",
-            "offset": 0,
-            "slot": "251",
-            "type": "t_mapping(t_address,t_struct(Staker)1365_storage)",
-            "contract": "CMTStaking",
-            "src": "contracts/CMTStaking.sol:57"
-          },
-          {
-            "label": "validators",
-            "offset": 0,
-            "slot": "252",
-            "type": "t_mapping(t_address,t_struct(Validator)1358_storage)",
-            "contract": "CMTStaking",
-            "src": "contracts/CMTStaking.sol:58"
-          },
-          {
-            "label": "stakingRecords",
-            "offset": 0,
-            "slot": "253",
-            "type": "t_mapping(t_address,t_mapping(t_address,t_array(t_struct(StakingRecord)1376_storage)dyn_storage))",
-            "contract": "CMTStaking",
-            "src": "contracts/CMTStaking.sol:60"
-          },
-          {
-            "label": "stakingTotalAmount",
-            "offset": 0,
-            "slot": "254",
-            "type": "t_uint256",
-            "contract": "CMTStaking",
-            "src": "contracts/CMTStaking.sol:62"
-          },
-          {
-            "label": "totalValidatorCount",
-            "offset": 0,
-            "slot": "255",
-            "type": "t_uint256",
-            "contract": "CMTStaking",
-            "src": "contracts/CMTStaking.sol:63"
-          },
-          {
-            "label": "activatedValidatorCount",
-            "offset": 0,
-            "slot": "256",
-            "type": "t_uint256",
-            "contract": "CMTStaking",
-            "src": "contracts/CMTStaking.sol:64"
-          },
-          {
-            "label": "feeUntaken",
-            "offset": 0,
-            "slot": "257",
-            "type": "t_uint256",
-            "contract": "CMTStaking",
-            "src": "contracts/CMTStaking.sol:65"
-          },
-          {
-            "label": "validatorLimit",
-            "offset": 0,
-            "slot": "258",
-            "type": "t_uint256",
-            "contract": "CMTStaking",
-            "src": "contracts/CMTStaking.sol:66"
-          }
-        ],
-        "types": {
-          "t_address": {
-            "label": "address",
-            "numberOfBytes": "20"
-          },
-          "t_array(t_struct(StakingRecord)1376_storage)dyn_storage": {
-            "label": "struct CMTStaking.StakingRecord[]",
-            "numberOfBytes": "32"
-          },
-          "t_array(t_uint256)49_storage": {
-            "label": "uint256[49]",
-            "numberOfBytes": "1568"
-          },
-          "t_array(t_uint256)50_storage": {
-            "label": "uint256[50]",
-            "numberOfBytes": "1600"
-          },
-          "t_bool": {
-            "label": "bool",
-            "numberOfBytes": "1"
-          },
-          "t_mapping(t_address,t_array(t_struct(StakingRecord)1376_storage)dyn_storage)": {
-            "label": "mapping(address => struct CMTStaking.StakingRecord[])",
-            "numberOfBytes": "32"
-          },
-          "t_mapping(t_address,t_mapping(t_address,t_array(t_struct(StakingRecord)1376_storage)dyn_storage))": {
-            "label": "mapping(address => mapping(address => struct CMTStaking.StakingRecord[]))",
-            "numberOfBytes": "32"
-          },
-          "t_mapping(t_address,t_struct(Staker)1365_storage)": {
-            "label": "mapping(address => struct CMTStaking.Staker)",
-            "numberOfBytes": "32"
-          },
-          "t_mapping(t_address,t_struct(Validator)1358_storage)": {
-            "label": "mapping(address => struct CMTStaking.Validator)",
-            "numberOfBytes": "32"
-          },
-          "t_struct(Staker)1365_storage": {
-            "label": "struct CMTStaking.Staker",
-            "members": [
-              {
-                "label": "stakerAddr",
-                "type": "t_address",
-                "offset": 0,
-                "slot": "0"
-              },
-              {
-                "label": "stakingAmount",
-                "type": "t_uint256",
-                "offset": 0,
-                "slot": "1"
-              },
-              {
-                "label": "unstakingAmount",
-                "type": "t_uint256",
-                "offset": 0,
-                "slot": "2"
-              }
-            ],
-            "numberOfBytes": "96"
-          },
-          "t_struct(StakingRecord)1376_storage": {
-            "label": "struct CMTStaking.StakingRecord",
-            "members": [
-              {
-                "label": "stakerAddr",
-                "type": "t_address",
-                "offset": 0,
-                "slot": "0"
-              },
-              {
-                "label": "validatorAddr",
-                "type": "t_address",
-                "offset": 0,
-                "slot": "1"
-              },
-              {
-                "label": "stakingAmount",
-                "type": "t_uint256",
-                "offset": 0,
-                "slot": "2"
-              },
-              {
-                "label": "stakingTime",
-                "type": "t_uint128",
-                "offset": 0,
-                "slot": "3"
-              },
-              {
-                "label": "unstakingTime",
-                "type": "t_uint128",
-                "offset": 16,
-                "slot": "3"
-              }
-            ],
-            "numberOfBytes": "128"
-          },
-          "t_struct(Validator)1358_storage": {
-            "label": "struct CMTStaking.Validator",
-            "members": [
-              {
-                "label": "validatorAddr",
-                "type": "t_address",
-                "offset": 0,
-                "slot": "0"
-              },
-              {
-                "label": "stakingAmount",
-                "type": "t_uint256",
-                "offset": 0,
-                "slot": "1"
-              },
-              {
-                "label": "rewardAmount",
-                "type": "t_uint256",
-                "offset": 0,
-                "slot": "2"
-              },
-              {
-                "label": "isValid",
-                "type": "t_bool",
-                "offset": 0,
-                "slot": "3"
-              },
-              {
-                "label": "validChangeTime",
-                "type": "t_uint128",
-                "offset": 1,
-                "slot": "3"
-              }
-            ],
-            "numberOfBytes": "128"
-          },
-          "t_uint128": {
-            "label": "uint128",
-            "numberOfBytes": "16"
-          },
-          "t_uint256": {
-            "label": "uint256",
-            "numberOfBytes": "32"
-          },
-          "t_uint8": {
-            "label": "uint8",
-            "numberOfBytes": "1"
-          }
-        }
-      }
-    },
-    "bc2163f6338885f7f8d381a478723b9d695543dc812ecf71a042849fd86815f4": {
-      "address": "0x6DC71956C6d4CA25617CEfD2f02DC3Bb72cAfebd",
-      "txHash": "0x17d9aaf59224df26e0b5cb4cf5ca8ab814b3e7f2e89503b5fc9ba4aa2db75a8b",
-      "layout": {
-        "solcVersion": "0.8.4",
-        "storage": [
-          {
-            "label": "_initialized",
-            "offset": 0,
-            "slot": "0",
-            "type": "t_uint8",
-            "contract": "Initializable",
-            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:62",
-            "retypedFrom": "bool"
-          },
-          {
-            "label": "_initializing",
-            "offset": 1,
-            "slot": "0",
-            "type": "t_bool",
-            "contract": "Initializable",
-            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:67"
-          },
-          {
-            "label": "__gap",
-            "offset": 0,
-            "slot": "1",
-            "type": "t_array(t_uint256)50_storage",
-            "contract": "ContextUpgradeable",
-            "src": "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol:36"
-          },
-          {
-            "label": "_paused",
-            "offset": 0,
-            "slot": "51",
-            "type": "t_bool",
-            "contract": "PausableUpgradeable",
-            "src": "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol:29"
-          },
-          {
-            "label": "__gap",
-            "offset": 0,
-            "slot": "52",
-            "type": "t_array(t_uint256)49_storage",
-            "contract": "PausableUpgradeable",
-            "src": "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol:116"
-          },
-          {
-            "label": "_owner",
-            "offset": 0,
-            "slot": "101",
-            "type": "t_address",
-            "contract": "OwnableUpgradeable",
-            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:22"
-          },
-          {
-            "label": "__gap",
-            "offset": 0,
-            "slot": "102",
-            "type": "t_array(t_uint256)49_storage",
-            "contract": "OwnableUpgradeable",
-            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:94"
-          },
-          {
-            "label": "__gap",
-            "offset": 0,
-            "slot": "151",
-            "type": "t_array(t_uint256)50_storage",
-            "contract": "ERC1967UpgradeUpgradeable",
-            "src": "@openzeppelin/contracts-upgradeable/proxy/ERC1967/ERC1967UpgradeUpgradeable.sol:211"
-          },
-          {
-            "label": "__gap",
-            "offset": 0,
-            "slot": "201",
-            "type": "t_array(t_uint256)50_storage",
-            "contract": "UUPSUpgradeable",
-            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol:107"
-          },
-          {
-            "label": "stakers",
-            "offset": 0,
-            "slot": "251",
-            "type": "t_mapping(t_address,t_struct(Staker)1309_storage)",
-            "contract": "CMTStaking",
-            "src": "contracts/CMTStaking.sol:36"
-          },
-          {
-            "label": "validators",
-            "offset": 0,
-            "slot": "252",
-            "type": "t_mapping(t_address,t_struct(Validator)1304_storage)",
-            "contract": "CMTStaking",
-            "src": "contracts/CMTStaking.sol:37"
-          },
-          {
-            "label": "stakingRecords",
-            "offset": 0,
-            "slot": "253",
-            "type": "t_mapping(t_address,t_mapping(t_address,t_array(t_struct(StakingRecord)1320_storage)dyn_storage))",
+            "slot": "301",
+            "type": "t_mapping(t_address,t_struct(Staker)1371_storage)",
             "contract": "CMTStaking",
             "src": "contracts/CMTStaking.sol:39"
           },
           {
-            "label": "totalStakingAmount",
+            "label": "validators",
             "offset": 0,
-            "slot": "254",
-            "type": "t_uint256",
+            "slot": "302",
+            "type": "t_mapping(t_address,t_struct(Validator)1366_storage)",
             "contract": "CMTStaking",
-            "src": "contracts/CMTStaking.sol:41"
+            "src": "contracts/CMTStaking.sol:40"
           },
           {
-            "label": "totalValidatorCount",
+            "label": "stakingRecords",
             "offset": 0,
-            "slot": "255",
-            "type": "t_uint256",
+            "slot": "303",
+            "type": "t_mapping(t_address,t_mapping(t_address,t_array(t_struct(StakingRecord)1382_storage)dyn_storage))",
             "contract": "CMTStaking",
             "src": "contracts/CMTStaking.sol:42"
           },
           {
-            "label": "activatedValidatorCount",
+            "label": "totalStakingAmount",
             "offset": 0,
-            "slot": "256",
-            "type": "t_uint256",
-            "contract": "CMTStaking",
-            "src": "contracts/CMTStaking.sol:43"
-          },
-          {
-            "label": "feeUntaken",
-            "offset": 0,
-            "slot": "257",
+            "slot": "304",
             "type": "t_uint256",
             "contract": "CMTStaking",
             "src": "contracts/CMTStaking.sol:44"
           },
           {
-            "label": "validatorLimit",
+            "label": "totalValidatorCount",
             "offset": 0,
-            "slot": "258",
+            "slot": "305",
             "type": "t_uint256",
             "contract": "CMTStaking",
             "src": "contracts/CMTStaking.sol:45"
+          },
+          {
+            "label": "activatedValidatorCount",
+            "offset": 0,
+            "slot": "306",
+            "type": "t_uint256",
+            "contract": "CMTStaking",
+            "src": "contracts/CMTStaking.sol:46"
+          },
+          {
+            "label": "feeUntaken",
+            "offset": 0,
+            "slot": "307",
+            "type": "t_uint256",
+            "contract": "CMTStaking",
+            "src": "contracts/CMTStaking.sol:47"
+          },
+          {
+            "label": "validatorLimit",
+            "offset": 0,
+            "slot": "308",
+            "type": "t_uint256",
+            "contract": "CMTStaking",
+            "src": "contracts/CMTStaking.sol:48"
           }
         ],
         "types": {
@@ -764,7 +173,7 @@
             "label": "address",
             "numberOfBytes": "20"
           },
-          "t_array(t_struct(StakingRecord)1320_storage)dyn_storage": {
+          "t_array(t_struct(StakingRecord)1382_storage)dyn_storage": {
             "label": "struct CMTStaking.StakingRecord[]",
             "numberOfBytes": "32"
           },
@@ -780,23 +189,23 @@
             "label": "bool",
             "numberOfBytes": "1"
           },
-          "t_mapping(t_address,t_array(t_struct(StakingRecord)1320_storage)dyn_storage)": {
+          "t_mapping(t_address,t_array(t_struct(StakingRecord)1382_storage)dyn_storage)": {
             "label": "mapping(address => struct CMTStaking.StakingRecord[])",
             "numberOfBytes": "32"
           },
-          "t_mapping(t_address,t_mapping(t_address,t_array(t_struct(StakingRecord)1320_storage)dyn_storage))": {
+          "t_mapping(t_address,t_mapping(t_address,t_array(t_struct(StakingRecord)1382_storage)dyn_storage))": {
             "label": "mapping(address => mapping(address => struct CMTStaking.StakingRecord[]))",
             "numberOfBytes": "32"
           },
-          "t_mapping(t_address,t_struct(Staker)1309_storage)": {
+          "t_mapping(t_address,t_struct(Staker)1371_storage)": {
             "label": "mapping(address => struct CMTStaking.Staker)",
             "numberOfBytes": "32"
           },
-          "t_mapping(t_address,t_struct(Validator)1304_storage)": {
+          "t_mapping(t_address,t_struct(Validator)1366_storage)": {
             "label": "mapping(address => struct CMTStaking.Validator)",
             "numberOfBytes": "32"
           },
-          "t_struct(Staker)1309_storage": {
+          "t_struct(Staker)1371_storage": {
             "label": "struct CMTStaking.Staker",
             "members": [
               {
@@ -814,7 +223,7 @@
             ],
             "numberOfBytes": "64"
           },
-          "t_struct(StakingRecord)1320_storage": {
+          "t_struct(StakingRecord)1382_storage": {
             "label": "struct CMTStaking.StakingRecord",
             "members": [
               {
@@ -850,8 +259,310 @@
             ],
             "numberOfBytes": "128"
           },
-          "t_struct(Validator)1304_storage": {
+          "t_struct(Validator)1366_storage": {
             "label": "struct CMTStaking.Validator",
+            "members": [
+              {
+                "label": "validatorAddr",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "stakingAmount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "rewardAmount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "isValid",
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "validChangeTime",
+                "type": "t_uint128",
+                "offset": 1,
+                "slot": "3"
+              }
+            ],
+            "numberOfBytes": "128"
+          },
+          "t_uint128": {
+            "label": "uint128",
+            "numberOfBytes": "16"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        }
+      }
+    },
+    "0e5836792afaa4d52762c76dbdb01e5079862785ce44e82a4d1453a675fd1a84": {
+      "address": "0x63C6b3481F5e34c55C77a0531E7526F9757b3EE4",
+      "txHash": "0x496586b465b0d1bc553b2e43552e2ed5b1757d1738a306bc18ee1c437ba48e2d",
+      "layout": {
+        "solcVersion": "0.8.4",
+        "storage": [
+          {
+            "label": "_initialized",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint8",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:62",
+            "retypedFrom": "bool"
+          },
+          {
+            "label": "_initializing",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:67"
+          },
+          {
+            "label": "_status",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_uint256",
+            "contract": "ReentrancyGuardUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol:38"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "ReentrancyGuardUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol:74"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "51",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ContextUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol:36"
+          },
+          {
+            "label": "_paused",
+            "offset": 0,
+            "slot": "101",
+            "type": "t_bool",
+            "contract": "PausableUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol:29"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "102",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "PausableUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol:116"
+          },
+          {
+            "label": "_owner",
+            "offset": 0,
+            "slot": "151",
+            "type": "t_address",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:22"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "152",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:94"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "201",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ERC1967UpgradeUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/ERC1967/ERC1967UpgradeUpgradeable.sol:211"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "251",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "UUPSUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol:107"
+          },
+          {
+            "label": "stakers",
+            "offset": 0,
+            "slot": "301",
+            "type": "t_mapping(t_address,t_struct(Staker)1371_storage)",
+            "contract": "CMTStakingMock",
+            "src": "contracts/mock/CMTStakingMock.sol:39"
+          },
+          {
+            "label": "validators",
+            "offset": 0,
+            "slot": "302",
+            "type": "t_mapping(t_address,t_struct(Validator)1366_storage)",
+            "contract": "CMTStakingMock",
+            "src": "contracts/mock/CMTStakingMock.sol:40"
+          },
+          {
+            "label": "stakingRecords",
+            "offset": 0,
+            "slot": "303",
+            "type": "t_mapping(t_address,t_mapping(t_address,t_array(t_struct(StakingRecord)1382_storage)dyn_storage))",
+            "contract": "CMTStakingMock",
+            "src": "contracts/mock/CMTStakingMock.sol:42"
+          },
+          {
+            "label": "totalStakingAmount",
+            "offset": 0,
+            "slot": "304",
+            "type": "t_uint256",
+            "contract": "CMTStakingMock",
+            "src": "contracts/mock/CMTStakingMock.sol:44"
+          },
+          {
+            "label": "totalValidatorCount",
+            "offset": 0,
+            "slot": "305",
+            "type": "t_uint256",
+            "contract": "CMTStakingMock",
+            "src": "contracts/mock/CMTStakingMock.sol:45"
+          },
+          {
+            "label": "activatedValidatorCount",
+            "offset": 0,
+            "slot": "306",
+            "type": "t_uint256",
+            "contract": "CMTStakingMock",
+            "src": "contracts/mock/CMTStakingMock.sol:46"
+          },
+          {
+            "label": "feeUntaken",
+            "offset": 0,
+            "slot": "307",
+            "type": "t_uint256",
+            "contract": "CMTStakingMock",
+            "src": "contracts/mock/CMTStakingMock.sol:47"
+          },
+          {
+            "label": "validatorLimit",
+            "offset": 0,
+            "slot": "308",
+            "type": "t_uint256",
+            "contract": "CMTStakingMock",
+            "src": "contracts/mock/CMTStakingMock.sol:48"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_struct(StakingRecord)1382_storage)dyn_storage": {
+            "label": "struct CMTStakingMock.StakingRecord[]",
+            "numberOfBytes": "32"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]",
+            "numberOfBytes": "1568"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_mapping(t_address,t_array(t_struct(StakingRecord)1382_storage)dyn_storage)": {
+            "label": "mapping(address => struct CMTStakingMock.StakingRecord[])",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_mapping(t_address,t_array(t_struct(StakingRecord)1382_storage)dyn_storage))": {
+            "label": "mapping(address => mapping(address => struct CMTStakingMock.StakingRecord[]))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_struct(Staker)1371_storage)": {
+            "label": "mapping(address => struct CMTStakingMock.Staker)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_struct(Validator)1366_storage)": {
+            "label": "mapping(address => struct CMTStakingMock.Validator)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(Staker)1371_storage": {
+            "label": "struct CMTStakingMock.Staker",
+            "members": [
+              {
+                "label": "stakerAddr",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "stakingAmount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_struct(StakingRecord)1382_storage": {
+            "label": "struct CMTStakingMock.StakingRecord",
+            "members": [
+              {
+                "label": "stakerAddr",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "validatorAddr",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "stakingAmount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "stakingTime",
+                "type": "t_uint128",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "unstakingTime",
+                "type": "t_uint128",
+                "offset": 16,
+                "slot": "3"
+              }
+            ],
+            "numberOfBytes": "128"
+          },
+          "t_struct(Validator)1366_storage": {
+            "label": "struct CMTStakingMock.Validator",
             "members": [
               {
                 "label": "validatorAddr",

@@ -1,16 +1,31 @@
-const {ethers, upgrades} = require("hardhat");
+const { ethers, upgrades, run } = require("hardhat");
 
-const proxyAddress = '0x68B1D87F95878fE05B998F19b66F4baba5De1aed'
+const proxyAddress = '0x421530C7C110ab1e33305Cc7Af33eFb65669e233'
 
 async function main() {
+    // upgrade proxy
     console.log("Input proxy address", proxyAddress)
 
-    const CMTStaking = await ethers.getContractFactory("CMTStaking")
-    console.log("Deploying...")
-    const proxy = await upgrades.upgradeProxy(proxyAddress, CMTStaking)
+    // new implementation
+    const CMTStakingMock = await ethers.getContractFactory('CMTStakingMock');
+    const constructorParams = [ethers.utils.parseEther('0.0001')];
+    console.log("Upgrading ...");
+    console.log(`Constructor params: ${constructorParams}`);
+    const proxy = await upgrades.upgradeProxy(proxyAddress, CMTStakingMock, { kind: 'uups', constructorArgs: constructorParams, unsafeAllow: ['state-variable-immutable'] })
+    console.log("Waiting for upgraded ...")
+    await proxy.deployed();
 
     const implAddress = await upgrades.erc1967.getImplementationAddress(proxy.address)
     console.log("Implementation address", implAddress)
+
+    try {
+        await run("verify:verify", {
+            address: implAddress,
+            constructorArguments: constructorParams
+        });
+    } catch (error) {
+        console.log(error);
+    }
 }
 
 main().catch((error) => {
