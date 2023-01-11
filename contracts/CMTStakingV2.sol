@@ -153,7 +153,7 @@ contract CMTStaking is
         );
         require(
             validators[validatorAddr].validatorAddr == address(0),
-            "Validator had been added"
+            "Validator had been added."
         );
 
         validators[validatorAddr] = Validator(
