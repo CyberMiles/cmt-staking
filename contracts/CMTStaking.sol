@@ -18,7 +18,7 @@ contract CMTStaking is
     event Unstaking(
         address validator,
         uint256 index,
-        uint256 unstakeingAmount,
+        uint256 unstakingAmount,
         uint256 stakerRewardAmount,
         uint256 validatorRewardAmount
     );
@@ -44,7 +44,7 @@ contract CMTStaking is
         uint256 index;
         address stakerAddr;
         address validatorAddr;
-        uint256 stakeingAmount;
+        uint256 stakingAmount;
         uint256 stakingTime;
         uint256 unstakingTime;
     }
@@ -282,25 +282,25 @@ contract CMTStaking is
         uint256 stakerIndex = stakerIndexes[msg.sender];
         require(stakerIndex > 0, "Staker not Exist.");
         stakers[stakerIndex].stakingAmount -= stakingRecords[recordIndex]
-            .stakeingAmount;
+            .stakingAmount;
         stakers[stakerIndex].unstakingAmount += stakingRecords[recordIndex]
-            .stakeingAmount;
+            .stakingAmount;
         stakers[stakerIndex].unstakingAmount += stakerRewardAmount; // 单利
 
         // 更新质押节点信息
         uint256 validatorIndex = validatorIndexes[validatorAddr];
         require(validatorIndex > 0, "Validator not Exist.");
         validators[validatorIndex].stakingAmount -= stakingRecords[recordIndex]
-            .stakeingAmount;
+            .stakingAmount;
         validators[validatorIndex].rewardAmount += validatorRewardAmount;
 
         // 更新总质押量
-        stakingTotalAmount -= stakingRecords[recordIndex].stakeingAmount;
+        stakingTotalAmount -= stakingRecords[recordIndex].stakingAmount;
 
         emit Unstaking(
             validatorAddr,
             recordIndex,
-            stakingRecords[recordIndex].stakeingAmount,
+            stakingRecords[recordIndex].stakingAmount,
             stakerRewardAmount,
             validatorRewardAmount
         );
@@ -414,11 +414,11 @@ contract CMTStaking is
         }
 
         uint256 stakerRewardAmount = (stakingRecords[recordIndex]
-            .stakeingAmount *
+            .stakingAmount *
             stakingInterval *
             6) / (86400 * 100 * 365);
         uint256 validatorRewardAmount = (stakingRecords[recordIndex]
-            .stakeingAmount *
+            .stakingAmount *
             stakingInterval *
             2) / (86400 * 100 * 365);
         return (stakerRewardAmount, validatorRewardAmount);
