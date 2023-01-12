@@ -52,6 +52,7 @@ contract CMTStaking is
     uint256 public feeUntaken;
     uint256 public validatorLimit;
     uint128 public lastRewardTime;
+    uint128 public lastCollectTime;
     uint256 public rewardAmountPerDay;
 
     uint256 public immutable MIN_STAKE_AMOUNT;
@@ -317,42 +318,48 @@ contract CMTStaking is
     // 20% to validators
     // APY is not fixed
     function computeReward() external whenNotPaused {
-        bool needToCollect = block.timestamp - 30 days > lastRewardTime;
-        uint256 validatorRewardPerDay = rewardAmountPerDay / 5;
-        uint256 stakerRewardPerDay = rewardAmountPerDay - validatorRewardPerDay;
-
-        for (uint256 i = 0; i < validatorAddrList.length; i++) {
-            address validatorAddr = validatorAddrList[i];
-            if (validators[validatorAddr].isValid) {
-                validators[validatorAddr].uncollectedAmount +=
-                    (validatorRewardPerDay *
-                        validators[validatorAddr].stakingAmount) /
-                    totalStakingAmount;
-            }
-
-            if (needToCollect) {
-                validators[validatorAddr].rewardAmount += validators[
-                    validatorAddr
-                ].uncollectedAmount;
-                validators[validatorAddr].uncollectedAmount = 0;
-            }
-        }
-
-        for (uint256 i = 0; i < stakerAddrList.length; i++) {
-            address stakerAddr = stakerAddrList[i];
-            stakers[stakerAddr].uncollectedAmount +=
-                (stakerRewardPerDay * stakers[stakerAddr].rewardAmount) /
-                totalStakingAmount;
-
-            if (needToCollect) {
-                stakers[stakerAddr].rewardAmount += stakers[stakerAddr]
-                    .uncollectedAmount;
-                stakers[stakerAddr].uncollectedAmount = 0;
-            }
-        }
-
-        if (needToCollect) {
+        bool oncePerDay = block.timestamp - 1 days >= lastRewardTime;
+        if (oncePerDay) {
             lastRewardTime = uint128(block.timestamp);
+
+            bool needToCollect = block.timestamp - 30 days >= lastCollectTime;
+            if (needToCollect) {
+                lastCollectTime = uint128(block.timestamp);
+            }
+
+            uint256 validatorRewardPerDay = rewardAmountPerDay / 5;
+            uint256 stakerRewardPerDay = rewardAmountPerDay -
+                validatorRewardPerDay;
+
+            for (uint256 i = 0; i < validatorAddrList.length; i++) {
+                address validatorAddr = validatorAddrList[i];
+                if (validators[validatorAddr].isValid) {
+                    validators[validatorAddr].uncollectedAmount +=
+                        (validatorRewardPerDay *
+                            validators[validatorAddr].stakingAmount) /
+                        totalStakingAmount;
+                }
+
+                if (needToCollect) {
+                    validators[validatorAddr].rewardAmount += validators[
+                        validatorAddr
+                    ].uncollectedAmount;
+                    validators[validatorAddr].uncollectedAmount = 0;
+                }
+            }
+
+            for (uint256 i = 0; i < stakerAddrList.length; i++) {
+                address stakerAddr = stakerAddrList[i];
+                stakers[stakerAddr].uncollectedAmount +=
+                    (stakerRewardPerDay * stakers[stakerAddr].rewardAmount) /
+                    totalStakingAmount;
+
+                if (needToCollect) {
+                    stakers[stakerAddr].rewardAmount += stakers[stakerAddr]
+                        .uncollectedAmount;
+                    stakers[stakerAddr].uncollectedAmount = 0;
+                }
+            }
         }
     }
 
