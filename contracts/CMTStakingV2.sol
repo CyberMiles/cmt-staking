@@ -318,18 +318,22 @@ contract CMTStaking is
     // APY is not fixed
     function computeReward() external whenNotPaused {
         bool needToCollect = block.timestamp - 30 days > lastRewardTime;
-        
+        uint256 validatorRewardPerDay = rewardAmountPerDay / 5;
+        uint256 stakerRewardPerDay = rewardAmountPerDay - validatorRewardPerDay;
+
         for (uint256 i = 0; i < validatorAddrList.length; i++) {
             address validatorAddr = validatorAddrList[i];
             if (validators[validatorAddr].isValid) {
                 validators[validatorAddr].uncollectedAmount +=
-                    (rewardAmountPerDay *
+                    (validatorRewardPerDay *
                         validators[validatorAddr].stakingAmount) /
                     totalStakingAmount;
             }
 
             if (needToCollect) {
-                validators[validatorAddr].rewardAmount += validators[validatorAddr].uncollectedAmount;
+                validators[validatorAddr].rewardAmount += validators[
+                    validatorAddr
+                ].uncollectedAmount;
                 validators[validatorAddr].uncollectedAmount = 0;
             }
         }
@@ -337,11 +341,12 @@ contract CMTStaking is
         for (uint256 i = 0; i < stakerAddrList.length; i++) {
             address stakerAddr = stakerAddrList[i];
             stakers[stakerAddr].uncollectedAmount +=
-                (rewardAmountPerDay * stakers[stakerAddr].rewardAmount) /
+                (stakerRewardPerDay * stakers[stakerAddr].rewardAmount) /
                 totalStakingAmount;
 
             if (needToCollect) {
-                stakers[stakerAddr].rewardAmount += stakers[stakerAddr].uncollectedAmount;
+                stakers[stakerAddr].rewardAmount += stakers[stakerAddr]
+                    .uncollectedAmount;
                 stakers[stakerAddr].uncollectedAmount = 0;
             }
         }
