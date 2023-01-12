@@ -318,49 +318,50 @@ contract CMTStaking is
     // 20% to validators
     // APY is not fixed
     function computeReward() external whenNotPaused {
-        bool oncePerDay = block.timestamp - 1 days >= lastRewardTime;
-        if (oncePerDay) {
-            lastRewardTime = uint128(block.timestamp);
+        require(
+            block.timestamp - lastRewardTime >= 1 days,
+            "Need to wait 1 day."
+        );
 
-            bool needToCollect = block.timestamp - 30 days >= lastCollectTime;
-            if (needToCollect) {
-                lastCollectTime = uint128(block.timestamp);
-            }
+        bool needToCollect = block.timestamp - lastCollectTime >= 30 days;
+        uint256 validatorRewardPerDay = rewardAmountPerDay / 5;
+        uint256 stakerRewardPerDay = rewardAmountPerDay - validatorRewardPerDay;
 
-            uint256 validatorRewardPerDay = rewardAmountPerDay / 5;
-            uint256 stakerRewardPerDay = rewardAmountPerDay -
-                validatorRewardPerDay;
-
-            for (uint256 i = 0; i < validatorAddrList.length; i++) {
-                address validatorAddr = validatorAddrList[i];
-                if (validators[validatorAddr].isValid) {
-                    validators[validatorAddr].uncollectedAmount +=
-                        (validatorRewardPerDay *
-                            validators[validatorAddr].stakingAmount) /
-                        totalStakingAmount;
-                }
-
-                if (needToCollect) {
-                    validators[validatorAddr].rewardAmount += validators[
-                        validatorAddr
-                    ].uncollectedAmount;
-                    validators[validatorAddr].uncollectedAmount = 0;
-                }
-            }
-
-            for (uint256 i = 0; i < stakerAddrList.length; i++) {
-                address stakerAddr = stakerAddrList[i];
-                stakers[stakerAddr].uncollectedAmount +=
-                    (stakerRewardPerDay * stakers[stakerAddr].rewardAmount) /
+        for (uint256 i = 0; i < validatorAddrList.length; i++) {
+            address validatorAddr = validatorAddrList[i];
+            if (validators[validatorAddr].isValid) {
+                validators[validatorAddr].uncollectedAmount +=
+                    (validatorRewardPerDay *
+                        validators[validatorAddr].stakingAmount) /
                     totalStakingAmount;
+            }
 
-                if (needToCollect) {
-                    stakers[stakerAddr].rewardAmount += stakers[stakerAddr]
-                        .uncollectedAmount;
-                    stakers[stakerAddr].uncollectedAmount = 0;
-                }
+            if (needToCollect) {
+                validators[validatorAddr].rewardAmount += validators[
+                    validatorAddr
+                ].uncollectedAmount;
+                validators[validatorAddr].uncollectedAmount = 0;
             }
         }
+
+        for (uint256 i = 0; i < stakerAddrList.length; i++) {
+            address stakerAddr = stakerAddrList[i];
+            stakers[stakerAddr].uncollectedAmount +=
+                (stakerRewardPerDay * stakers[stakerAddr].rewardAmount) /
+                totalStakingAmount;
+
+            if (needToCollect) {
+                stakers[stakerAddr].rewardAmount += stakers[stakerAddr]
+                    .uncollectedAmount;
+                stakers[stakerAddr].uncollectedAmount = 0;
+            }
+        }
+
+        if (needToCollect) {
+            lastCollectTime = uint128(block.timestamp);
+        }
+
+        lastRewardTime = uint128(block.timestamp);
     }
 
     function sendValue(address payable to, uint256 amount) private {
