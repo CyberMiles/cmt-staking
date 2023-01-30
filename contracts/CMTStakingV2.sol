@@ -76,20 +76,20 @@ contract CMTStaking is
         MIN_STAKE_AMOUNT = minStakeAmount;
     }
 
-    function initialize(address validator) external initializer {
+    function initialize(address owner, address validator) external initializer {
         __ReentrancyGuard_init();
         __Pausable_init();
-        __Ownable_init();
+        _transferOwnership(owner);
         __UUPSUpgradeable_init();
 
         // default maximum 21 validators
         validatorLimit = 21;
 
         // default amount of rewards per block
-        setRewardPerBlock(5 ether);
+        _setRewardPerBlock(5 ether);
 
         // minimum 1 validator
-        addValidator(validator);
+        _addValidator(validator);
     }
 
     receive() external payable {
@@ -113,12 +113,10 @@ contract CMTStaking is
     }
 
     // set amount of rewards per block
-    function setRewardPerBlock(uint256 amount) public onlyOwner {
-        require(amount > 0, "Invalid limit value.");
-        updatePools();
-        validatorRewardPerBlock = amount / 5;
-        stakerRewardPerBlock = amount - validatorRewardPerBlock;
-        emit RewardPerBlockChanged(validatorRewardPerBlock, stakerRewardPerBlock);
+    function setRewardPerBlock(uint256 amount) external onlyOwner {
+        require(amount > 0, "Invalid reward per block.");
+        _updatePools();
+        _setRewardPerBlock(amount);
     }
 
     // set maximum num of validators
@@ -128,17 +126,8 @@ contract CMTStaking is
     }
 
     // add validator
-    function addValidator(address validator) public onlyOwner {
-        require(validator != address(0), "Invalid address.");
-        require(_validators.length() < validatorLimit, "Validators are full.");
-        require(
-            !isActiveValidator(validator) && inactivePools[validator].updateBlock == 0,
-            "Validator had been added."
-        );
-
-        _validators.add(validator);
-
-        emit ValidatorChanged(validator, true);
+    function addValidator(address validator) external onlyOwner {
+        _addValidator(validator);
     }
 
     // deactivate validator
@@ -146,7 +135,7 @@ contract CMTStaking is
         require(_validators.length() > 1, "Cannot remove the only validator.");
         require(isActiveValidator(validator), "Validator not exist or has been removed.");
 
-        (Pool memory vPool, Pool memory sPool, uint256 distBlock) = updatePools();
+        (Pool memory vPool, Pool memory sPool, uint256 distBlock) = _updatePools();
         StakeInfo memory info = stakeTable[address(0)][validator];
         _updateRewards(vPool, info, distBlock);
         _updateRewardDebt(vPool, info);
@@ -176,7 +165,7 @@ contract CMTStaking is
 
     // validator withdraw its rewards
     function validatorWithdraw(address payable recipient, uint256 amount) external nonReentrant whenNotPaused {
-        (Pool memory vPool, , uint256 distBlock) = updatePools();
+        (Pool memory vPool, , uint256 distBlock) = _updatePools();
         StakeInfo memory info = stakeTable[address(0)][msg.sender];
         if (isActiveValidator(msg.sender)) {
             _updateRewards(vPool, info, distBlock);
@@ -205,7 +194,7 @@ contract CMTStaking is
 
         require(isActiveValidator(validator), "Validator not exist or has been removed.");
 
-        (Pool memory vPool, Pool memory sPool, uint256 distBlock) = updatePools();
+        (Pool memory vPool, Pool memory sPool, uint256 distBlock) = _updatePools();
         StakeInfo memory vInfo = stakeTable[address(0)][validator];
         StakeInfo memory sInfo = stakeTable[validator][msg.sender];
         _updateRewards(vPool, vInfo, distBlock);
@@ -226,7 +215,7 @@ contract CMTStaking is
 
     // can only claim distributed reward
     function unstake(address validator, uint256 amount, address payable recipient) external nonReentrant whenNotPaused {
-        (Pool memory vPool, Pool memory sPool, uint256 distBlock) = updatePools();
+        (Pool memory vPool, Pool memory sPool, uint256 distBlock) = _updatePools();
         StakeInfo memory vInfo = stakeTable[address(0)][validator];
         StakeInfo memory sInfo = stakeTable[validator][msg.sender];
 
@@ -305,7 +294,7 @@ contract CMTStaking is
         return block.number - (block.number % period);
     }
 
-    function updatePools() public returns (Pool memory vPool, Pool memory sPool, uint256 distBlock) {
+    function _updatePools() internal returns (Pool memory vPool, Pool memory sPool, uint256 distBlock) {
         distBlock = lastDistributionBlock();
         vPool = _updatePool(validatorPool, validatorRewardPerBlock, activeStakeAmount, distBlock);
         sPool = _updatePool(stakerPool, stakerRewardPerBlock, activeStakeAmount, distBlock);
@@ -359,6 +348,23 @@ contract CMTStaking is
     function _sendValue(address payable to, uint256 amount) internal {
         (bool success, ) = to.call{value: amount}("");
         require(success, "Failed to send native token.");
+    }
+
+    function _setRewardPerBlock(uint256 amount) internal {
+        validatorRewardPerBlock = amount / 5;
+        stakerRewardPerBlock = amount - validatorRewardPerBlock;
+        emit RewardPerBlockChanged(validatorRewardPerBlock, stakerRewardPerBlock);
+    }
+
+    function _addValidator(address validator) internal {
+        require(validator != address(0), "Invalid address.");
+        require(_validators.length() < validatorLimit, "Validators are full.");
+        require(
+            !isActiveValidator(validator) && inactivePools[validator].updateBlock == 0,
+            "Validator had been added."
+        );
+        _validators.add(validator);
+        emit ValidatorChanged(validator, true);
     }
 
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
