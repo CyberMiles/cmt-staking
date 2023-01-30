@@ -8,7 +8,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 
-contract CMTStaking is
+contract CMTStakingV2 is
     Initializable,
     // not necessary now but we add ReentrancyGuard in advance to improve security of future updates
     ReentrancyGuardUpgradeable,
@@ -209,6 +209,10 @@ contract CMTStaking is
         // update staking amounts
         activeStakeAmount += msg.value;
         totalStakeAmount += msg.value;
+
+        //update storage
+        stakeTable[address(0)][validator] = vInfo;
+        stakeTable[validator][msg.sender] = sInfo;
 
         emit Stake(msg.sender, validator, msg.value);
     }
