@@ -98,9 +98,6 @@ contract CMTStakingV2 is
 
         // minimum 1 validator
         _addValidator(validator);
-
-        referenceBlock = uint32(block.number);
-        referenceTime = uint64(block.timestamp);
     }
 
     receive() external payable {
