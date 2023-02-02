@@ -8,6 +8,8 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 
+import "./BokkyPooBahsDateTimeLibrary.sol";
+
 contract CMTStakingV2 is
     Initializable,
     // not necessary now but we add ReentrancyGuard in advance to improve security of future updates
@@ -36,12 +38,18 @@ contract CMTStakingV2 is
 
     Pool public validatorPool;
     Pool public stakerPool;
-    mapping(address => Pool) inactivePools;
+    mapping(address => Pool) public inactivePools;
 
-    // validator => staker => staking records
+    // validator => staker => stake info
     mapping(address => mapping(address => StakeInfo)) public stakeTable;
 
     uint32 public validatorLimit;
+
+    uint32 public distributionBlock;
+    uint64 public distributionTime;
+
+    uint32 public referenceBlock;
+    uint64 public referenceTime;
 
     uint256 public validatorRewardPerBlock;
     uint256 public stakerRewardPerBlock;
@@ -190,7 +198,7 @@ contract CMTStakingV2 is
 
     // stake into a valid validator
     function stake(address validator) external payable whenNotPaused {
-        require(msg.value >= MIN_STAKE_AMOUNT, "Staking amount must >= MIN_STAKE_AMOUNT.");
+        require(msg.value >= MIN_STAKE_AMOUNT, "Stake amount must >= MIN_STAKE_AMOUNT.");
 
         require(isActiveValidator(validator), "Validator not exist or has been removed.");
 
@@ -205,14 +213,12 @@ contract CMTStakingV2 is
         _updateRewardDebt(sPool, sInfo);
         vInfo.updateBlock = block.number;
         sInfo.updateBlock = block.number;
+        stakeTable[address(0)][validator] = vInfo;
+        stakeTable[validator][msg.sender] = sInfo;
 
         // update staking amounts
         activeStakeAmount += msg.value;
         totalStakeAmount += msg.value;
-
-        //update storage
-        stakeTable[address(0)][validator] = vInfo;
-        stakeTable[validator][msg.sender] = sInfo;
 
         emit Stake(msg.sender, validator, msg.value);
     }
@@ -223,7 +229,8 @@ contract CMTStakingV2 is
         StakeInfo memory vInfo = stakeTable[address(0)][validator];
         StakeInfo memory sInfo = stakeTable[validator][msg.sender];
 
-        require(amount > 0 && amount <= sInfo.stakeAmount, "Invalid amount or insufficient balance.");
+        require(validator != address(0) && sInfo.updateBlock != 0, "Stake record not found.");
+        require(amount <= sInfo.stakeAmount, "Insufficient balance.");
 
         if (isActiveValidator(msg.sender)) {
             _updateRewards(vPool, vInfo, distBlock);
@@ -271,8 +278,8 @@ contract CMTStakingV2 is
         _sendValue(recipient, stakerWithdrawAmount);
     }
 
-    function pendingReward(address validator, address staker) external view returns (uint256 dist, uint256 locked) {
-        uint256 distBlock = lastDistributionBlock();
+    function estimatedRewards(address validator, address staker) external view returns (uint256 dist, uint256 locked) {
+        (uint256 distBlock, ) = _lastDistributionBlock();
         StakeInfo memory info = stakeTable[validator][staker];
         Pool memory pool = isActiveValidator(validator) ? stakerPool : inactivePools[validator];
         if (isActiveValidator(validator)) {
@@ -293,13 +300,27 @@ contract CMTStakingV2 is
         return _validators.values();
     }
 
-    function lastDistributionBlock() public view returns (uint256 blockNumber) {
-        uint256 period = 30 days / 6;
-        return block.number - (block.number % period);
+    function lastDistributionTime() public view returns (uint256 timestamp) {
+        (uint year, uint month, ) = BokkyPooBahsDateTimeLibrary.timestampToDate(block.timestamp);
+        // distribute rewards at 00:00 UTC on 1st every month
+        return BokkyPooBahsDateTimeLibrary.timestampFromDate(year, month, 1);
+    }
+
+    function _lastDistributionBlock() internal view returns (uint256 distBlock, uint256 distTime) {
+        distTime = lastDistributionTime();
+        if (distributionTime >= distTime) {
+            return (distributionBlock, distributionTime);
+        }
+        distBlock =
+            (block.number * (distTime - referenceTime) + referenceBlock * (block.timestamp - distTime)) /
+            (block.timestamp - referenceTime);
     }
 
     function _updatePools() internal returns (Pool memory vPool, Pool memory sPool, uint256 distBlock) {
-        distBlock = lastDistributionBlock();
+        uint256 distTime;
+        (distBlock, distTime) = _lastDistributionBlock();
+        (distributionBlock, distributionTime) = (uint32(distBlock), uint64(distTime));
+        (referenceBlock, referenceTime) = (uint32(block.number), uint64(block.timestamp));
         vPool = _updatePool(validatorPool, validatorRewardPerBlock, activeStakeAmount, distBlock);
         sPool = _updatePool(stakerPool, stakerRewardPerBlock, activeStakeAmount, distBlock);
         validatorPool = vPool;
