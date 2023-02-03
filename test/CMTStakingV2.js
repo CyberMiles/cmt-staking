@@ -77,6 +77,10 @@ describe('CMTStakingV2 contract', function () {
             for (i = 0; i < validatorLimit - 1; i++) {
                 await cmtStaking.connect(owner).addValidator(addrs[i].address);
             }
+
+            const allActiveValidators = await cmtStaking.activeValidators();
+            expect(allActiveValidators.length).to.equal(validatorLimit);
+
             // add the (validatorLimit + 1)th validator
             await expect(cmtStaking.connect(owner).addValidator(addrs[i].address)).to.be.revertedWith('Validators are full.');
         })
@@ -250,6 +254,10 @@ describe('CMTStakingV2 contract', function () {
             confirm = await tx.wait();
             const stakerReceiverBalanceAfter = await stakerReceiver.getBalance();
 
+            // after pool update, compare the real distribution block and calculated distribution block
+            // they should be the same
+            expect(await cmtStaking.distributionBlock()).to.equal(distributionBlock);
+
             // calculate unstakeAmount after fee
             const unstakeAmount = stakeAmount.add(estStakerRewards.dist).mul(99).div(100);
             expect(stakerReceiverBalanceAfter.sub(stakerReceiverBalanceBefore)).to.equal(unstakeAmount);
@@ -283,6 +291,196 @@ describe('CMTStakingV2 contract', function () {
             const feeCollectorBalanceAfter = await feeCollector.getBalance();
             expect(feeCollectorBalanceAfter.sub(feeCollectorBalanceBefore)).to.equal(calcFee);
             expect(await cmtStaking.feeUntaken()).to.equal(0);
+        })
+
+        it('cannot stake amount less than mim stake amount', async function () {
+            const { cmtStaking, validator1, addrs } = await loadFixture(deployTokenFixture);
+            const staker = addrs[0];
+            const stakeAmount = ethers.utils.parseEther('0.000001');
+            expect(await cmtStaking.MIN_STAKE_AMOUNT()).to.equal(MINSTAKEAMOUNT);
+            await expect(cmtStaking.connect(staker).stake(validator1.address, { value: stakeAmount })).to.be.revertedWith('Stake amount must >= MIN_STAKE_AMOUNT.');
+        })
+
+        it('cannot stake on a invalid validator', async function () {
+            const { cmtStaking, addrs } = await loadFixture(deployTokenFixture);
+            const staker = addrs[0];
+            const validator = addrs[1];
+            const stakeAmount = ethers.utils.parseEther('1');
+            expect(await cmtStaking.isActiveValidator(validator.address)).to.false;
+            await expect(cmtStaking.connect(staker).stake(validator.address, { value: stakeAmount })).to.be.revertedWith('Validator not exist or has been removed.');
+        })
+
+        it('same staker is able to stake multi times', async function () {
+            const { cmtStaking, validator1, addrs } = await loadFixture(deployTokenFixture);
+            const staker = addrs[0];
+            const stakeAmount = ethers.utils.parseEther('1');
+            await cmtStaking.connect(staker).stake(validator1.address, { value: stakeAmount });
+            await cmtStaking.connect(staker).stake(validator1.address, { value: stakeAmount });
+
+            const sInfo = await cmtStaking.stakeTable(validator1.address, staker.address);
+            expect(sInfo.stakeAmount).to.equal(stakeAmount.mul(2));
+        })
+
+        it('staker does not exist when unstake', async function () {
+            const { cmtStaking, validator1, addrs } = await loadFixture(deployTokenFixture);
+            const staker = addrs[0];
+            const stakeAmount = ethers.utils.parseEther('1');
+            await cmtStaking.connect(staker).stake(validator1.address, { value: stakeAmount });
+
+            const unstaker = addrs[1];
+            await expect(cmtStaking.connect(unstaker).unstake(validator1.address, stakeAmount, staker.address)).to.be.revertedWith('Stake record not found.');
+        })
+
+        it('cannot unstake more than staked amount', async function () {
+            const { cmtStaking, validator1, addrs } = await loadFixture(deployTokenFixture);
+            const staker = addrs[0];
+            const stakeAmount = ethers.utils.parseEther('1');
+            await cmtStaking.connect(staker).stake(validator1.address, { value: stakeAmount });
+
+            await cmtStaking.connect(staker).unstake(validator1.address, 0, staker.address);
+            await expect(cmtStaking.connect(staker).unstake(validator1.address, stakeAmount.add(ethers.utils.parseEther('0.1')), staker.address)).to.be.revertedWith('Insufficient balance.');
+        })
+
+        it('validator cannot withdraw 0 reward or more than it has', async function () {
+            const { cmtStaking, validator1, addrs } = await loadFixture(deployTokenFixture);
+            const staker = addrs[0];
+            const stakeAmount = ethers.utils.parseEther('1');
+            await cmtStaking.connect(staker).stake(validator1.address, { value: stakeAmount });
+
+            await expect(cmtStaking.connect(validator1).validatorWithdraw(validator1.address, stakeAmount)).to.be.revertedWith('Invalid amount or insufficient balance.');
+            await expect(cmtStaking.connect(validator1).validatorWithdraw(validator1.address, 0)).to.be.revertedWith('Invalid amount or insufficient balance.');
+        })
+
+        it("failed to send native token if contract balance is insufficient", async function () {
+            const { cmtStaking, validator1, addrs, owner } = await loadFixture(deployTokenFixture);
+            const staker = addrs[0];
+            const stakeAmount = ethers.utils.parseEther('1');
+            await cmtStaking.connect(staker).stake(validator1.address, { value: stakeAmount });
+
+            // travel to 1 day later
+            const blocksInJan = 60 * 60 * 24 * 31;
+            await mine(blocksInJan);
+
+            // unstake
+            await expect(cmtStaking.connect(staker).unstake(validator1.address, stakeAmount, staker.address)).to.be.revertedWith("Failed to send native token.");
+        })
+
+        it("staker cannot get reward if the staking's validator get deactivated", async function () {
+            const { cmtStaking, validator1, addrs, owner } = await loadFixture(deployTokenFixture);
+            const staker = addrs[0];
+            const stakeAmount = ethers.utils.parseEther('1');
+            let tx = await cmtStaking.connect(staker).stake(validator1.address, { value: stakeAmount });
+            let confirm = await tx.wait();
+
+            // travel to 1 day later
+            const ONE_DAY_BLOCK = 60 * 60 * 24;
+            await mine(ONE_DAY_BLOCK);
+
+            // add one more validator to avoid error of Validators should be at least 1.
+            const validator2 = addrs[1];
+            await cmtStaking.connect(owner).addValidator(validator2.address);
+
+            // deactivate validator1
+            tx = await cmtStaking.connect(owner).removeValidator(validator1.address);
+            confirm = await tx.wait();
+            expect(await cmtStaking.isActiveValidator(validator1.address)).to.be.false;
+
+            // travel to 1 month later
+            const blocksInJan = 60 * 60 * 24 * 31;
+            await mine(blocksInJan);
+
+            // unstake
+            const calcRewards = 5 * (ONE_DAY_BLOCK + 2);
+            const miner = addrs[1];
+            await setBalance(miner.address, ethers.utils.parseEther((calcRewards + 1).toString()));
+            await miner.sendTransaction({
+                to: cmtStaking.address,
+                value: ethers.utils.parseEther(calcRewards.toString())
+            })
+
+            const calcStakerRewards = 4 * (ONE_DAY_BLOCK + 2);
+            const estStakerRewards = await cmtStaking.estimatedRewards(validator1.address, staker.address);
+            expect(estStakerRewards.dist).to.equal(ethers.utils.parseEther(calcStakerRewards.toString()));
+            expect(estStakerRewards.locked).to.equal(0);
+
+            const stakerReceiver = addrs[2];
+            const balanceBefore = await stakerReceiver.getBalance();
+            tx = await cmtStaking.connect(staker).unstake(validator1.address, stakeAmount, stakerReceiver.address);
+            confirm = await tx.wait();
+            const balanceAfter = await stakerReceiver.getBalance();
+            const stakerUnstakeAmount = balanceAfter.sub(balanceBefore);
+            expect(stakerUnstakeAmount).to.equal(stakeAmount.add(estStakerRewards.dist).mul(99).div(100));
+
+            sInfo = await cmtStaking.stakeTable(validator1.address, staker.address);
+            expect(sInfo.distReward).to.equal(0);
+            expect(sInfo.stakeAmount).to.equal(0);
+
+            // validator1 withdraw rewards
+            const validatorRewardReceiver = addrs[3];
+            const validatorReceiverBalanceBefore = await validatorRewardReceiver.getBalance();
+            const calcValidatorDistReward = 1 * (ONE_DAY_BLOCK + 2);
+            tx = await cmtStaking.connect(validator1).validatorWithdraw(validatorRewardReceiver.address, ethers.utils.parseEther(calcValidatorDistReward.toString()));
+            confirm = await tx.wait();
+            const validatorReceiverBalanceAfter = await validatorRewardReceiver.getBalance();
+            expect(validatorReceiverBalanceAfter.sub(validatorReceiverBalanceBefore)).to.equal(ethers.utils.parseEther(calcValidatorDistReward.toString()));
+            vInfo = await cmtStaking.stakeTable(ethers.constants.AddressZero, validator1.address);
+            expect(vInfo.distReward).to.equal(0);
+            expect(vInfo.stakeAmount).to.equal(0);
+        })
+
+        it("accumulative unit rewards", async function () {
+            const { cmtStaking, validator1, addrs, owner } = await loadFixture(deployTokenFixture);
+            AUR_PREC = ethers.BigNumber.from('1000000000000000000');
+
+            const staker0 = addrs[0];
+            const stakeAmount = ethers.utils.parseEther('1');
+            await cmtStaking.connect(staker0).stake(validator1.address, { value: stakeAmount });
+
+            let sPool = await cmtStaking.stakerPool();
+            expect(sPool.lastAUR).to.equal(0);
+            expect(sPool.distAUR).to.equal(0);
+
+            // travel to 1 day later
+            const ONE_DAY_BLOCK = 60 * 60 * 24;
+            await mine(ONE_DAY_BLOCK);
+
+            const staker1 = addrs[1];
+            await cmtStaking.connect(staker1).stake(validator1.address, { value: stakeAmount.mul(2) });
+
+            let calcAUR = ethers.utils.parseEther((4 * (ONE_DAY_BLOCK + 1)).toString()).mul(AUR_PREC).div(stakeAmount);
+            sPool = await cmtStaking.stakerPool();
+            expect(sPool.lastAUR).to.equal(calcAUR);
+            expect(sPool.distAUR).to.equal(0);
+
+            let stake1RewardDebt = stakeAmount.mul(2).mul(sPool.lastAUR).div(AUR_PREC);
+
+            // travel to 1 day later
+            await mine(ONE_DAY_BLOCK);
+
+            const staker2= addrs[2];
+            await cmtStaking.connect(staker2).stake(validator1.address, { value: stakeAmount.mul(3) });
+
+            calcAUR = calcAUR.add(ethers.utils.parseEther((4 * (ONE_DAY_BLOCK + 1)).toString()).mul(AUR_PREC).div(stakeAmount.mul(3)));
+            sPool = await cmtStaking.stakerPool();
+            expect(sPool.lastAUR).to.equal(calcAUR);
+            expect(sPool.distAUR).to.equal(0);
+
+            // travel to 1 day later
+            await mine(ONE_DAY_BLOCK);
+
+            // staker1 unstake 1 ether, and 1 ether left
+            await cmtStaking.connect(staker1).unstake(validator1.address, stakeAmount, staker1.address);
+            calcAUR = calcAUR.add(ethers.utils.parseEther((4 * (ONE_DAY_BLOCK + 1)).toString()).mul(AUR_PREC).div(stakeAmount.mul(6)));
+            sPool = await cmtStaking.stakerPool();
+            expect(sPool.lastAUR).to.equal(calcAUR);
+            expect(sPool.distAUR).to.equal(0);
+
+            let staker1Info = await cmtStaking.stakeTable(validator1.address, staker1.address);
+            let staker1Reward = stakeAmount.mul(2).mul(sPool.lastAUR).div(AUR_PREC).sub(stake1RewardDebt);
+            stake1RewardDebt = stakeAmount.mul(sPool.lastAUR).div(AUR_PREC);
+            expect(staker1Info.rewardDebt).to.equal(stake1RewardDebt);
+            expect(staker1Info.lockedReward).to.equal(staker1Reward);
+            expect(staker1Info.stakeAmount).to.equal(stakeAmount);
         })
     })
 });
