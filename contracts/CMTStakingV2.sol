@@ -232,7 +232,7 @@ contract CMTStakingV2 is
         require(validator != address(0) && sInfo.updateBlock != 0, "Stake record not found.");
         require(amount <= sInfo.stakeAmount, "Insufficient balance.");
 
-        if (isActiveValidator(msg.sender)) {
+        if (isActiveValidator(validator)) {
             _updateRewards(vPool, vInfo, distBlock);
             _updateRewards(sPool, sInfo, distBlock);
             vInfo.stakeAmount -= amount;

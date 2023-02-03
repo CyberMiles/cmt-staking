@@ -2,7 +2,7 @@
 
 a staking contract to allow users to stake native token on validators to gain rewards.
 
-## How to build
+## How to compile
 
 - prerequisite
 
@@ -23,10 +23,10 @@ ETHERSCAN_API_KEY=xxx
 BSCSCAN_API_KEY=xxx
 ```
 
-- build
+- compile
 
 ```
-npx hardhat build
+npx hardhat compile
 ```
 
 ## How to test on local hardhat node

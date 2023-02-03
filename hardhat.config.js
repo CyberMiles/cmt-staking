@@ -33,7 +33,8 @@ module.exports = {
             chainId: 1337,
             accounts: {
                 count: 40
-            }
+            },
+            initialDate: "2023-01-01"
         }
     },
     etherscan: {
