@@ -1,13 +1,13 @@
 const { ethers, upgrades, run } = require("hardhat");
 
-const proxyAddress = '0x421530C7C110ab1e33305Cc7Af33eFb65669e233'
+const proxyAddress = '0x5e6B5EF5C70d0C9970386253224f373eFFb67eE5'
 
 async function main() {
     // upgrade proxy
     console.log("Input proxy address", proxyAddress)
 
     // new implementation
-    const CMTStakingMock = await ethers.getContractFactory('CMTStakingMock');
+    const CMTStakingMock = await ethers.getContractFactory('CMTStakingV2Mock');
     const constructorParams = [ethers.utils.parseEther('0.0001')];
     console.log("Upgrading ...");
     console.log(`Constructor params: ${constructorParams}`);

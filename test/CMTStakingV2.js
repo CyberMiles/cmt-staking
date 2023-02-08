@@ -567,5 +567,113 @@ describe('CMTStakingV2 contract', function () {
             expect(staker1Info.lockedReward).to.equal(staker1Reward);
             expect(staker1Info.stakeAmount).to.equal(stakeAmount);
         })
+
+        it("users multiple stake, unstak test", async function () {
+            const { cmtStaking, validator1, addrs, owner } = await loadFixture(deployTokenFixture);
+
+            // staker0: stake 1 eth
+            const staker0 = addrs[0];
+            const stakeAmount = ethers.utils.parseEther('1');
+            await cmtStaking.connect(staker0).stake(validator1.address, { value: stakeAmount });
+
+            const ONE_DAY_BLOCK = 60 * 60 * 24;
+
+            // for the first 1 day, staker0 will get all rewards, and all rewards are locked yet.
+            await mine(ONE_DAY_BLOCK);
+            let estStaker0Rewards = await cmtStaking.estimatedRewards(validator1.address, staker0.address);
+            let calcStaker0Rewards0 = ethers.utils.parseEther((4 * ONE_DAY_BLOCK).toString());
+            expect(estStaker0Rewards.locked).to.equal(calcStaker0Rewards0);
+            expect(estStaker0Rewards.dist).to.equal(0);
+
+            // staker1: stake 1 eth
+            const staker1 = addrs[1];
+            await cmtStaking.connect(staker1).stake(validator1.address, { value: stakeAmount });
+
+            // for the next 1 day, staker0 and staker1 will divide all rewards, and all rewards are locked yet.
+            await mine(ONE_DAY_BLOCK);
+            estStaker0Rewards = await cmtStaking.estimatedRewards(validator1.address, staker0.address);
+            // tricky part, the block's reward of staker1 staking belongs to staker0, the rest will divided equally
+            let calcStaker0Rewards1 = ethers.utils.parseEther((4 * ONE_DAY_BLOCK).toString()).div(2).add(ethers.utils.parseEther('4'));
+            expect(estStaker0Rewards.locked).to.equal(calcStaker0Rewards0.add(calcStaker0Rewards1));
+            expect(estStaker0Rewards.dist).to.equal(0);
+
+            let estStaker1Rewards = await cmtStaking.estimatedRewards(validator1.address, staker1.address);
+            let calcStaker1Rewards0 = ethers.utils.parseEther((4 * ONE_DAY_BLOCK).toString()).div(2);
+            expect(estStaker1Rewards.locked).to.equal(calcStaker1Rewards0);
+            expect(estStaker1Rewards.dist).to.equal(0);
+
+            // staker0 unstake 1 eth. 
+            await cmtStaking.connect(staker0).unstake(validator1.address, stakeAmount, staker0.address);
+
+            // for the next 1 day, all rewards belongs to staker1
+            await mine(ONE_DAY_BLOCK);
+            estStaker0Rewards = await cmtStaking.estimatedRewards(validator1.address, staker0.address);
+            // staker0's rewards are still locked, and there is only rewards for the block of unstake.
+            let calcStaker0Rewards2 = ethers.utils.parseEther('2');
+            expect(estStaker0Rewards.locked).to.equal(calcStaker0Rewards0.add(calcStaker0Rewards1).add(calcStaker0Rewards2));
+            expect(estStaker0Rewards.dist).to.equal(0);
+
+            estStaker1Rewards = await cmtStaking.estimatedRewards(validator1.address, staker1.address);
+            // staker1 will get all rewards of the day and half reward for the block of unstake.
+            let calcStaker1Rewards1 = ethers.utils.parseEther((4 * ONE_DAY_BLOCK).toString()).add(ethers.utils.parseEther('2'));
+            expect(estStaker1Rewards.locked).to.equal(calcStaker1Rewards0.add(calcStaker1Rewards1));
+            expect(estStaker1Rewards.dist).to.equal(0);
+
+            // staker1 unstake 1 eth
+            await cmtStaking.connect(staker1).unstake(validator1.address, stakeAmount, staker0.address);
+
+            // for the next 1 day, no rewards generated as no stake amount
+            await mine(ONE_DAY_BLOCK);
+            estStaker0Rewards = await cmtStaking.estimatedRewards(validator1.address, staker0.address);
+            expect(estStaker0Rewards.locked).to.equal(calcStaker0Rewards0.add(calcStaker0Rewards1).add(calcStaker0Rewards2));
+            expect(estStaker0Rewards.dist).to.equal(0);
+
+            estStaker1Rewards = await cmtStaking.estimatedRewards(validator1.address, staker1.address);
+            // the block reward of unstake
+            let calcStaker1Rewards2 = ethers.utils.parseEther('4');
+            expect(estStaker1Rewards.locked).to.equal(calcStaker1Rewards0.add(calcStaker1Rewards1).add(calcStaker1Rewards2));
+            expect(estStaker1Rewards.dist).to.equal(0);
+
+            // staker0 stake 1 eth again
+            await cmtStaking.connect(staker0).stake(validator1.address, { value: stakeAmount });
+
+            // staker0 will get all rewards again for the day.
+            await mine(ONE_DAY_BLOCK);
+
+            estStaker0Rewards = await cmtStaking.estimatedRewards(validator1.address, staker0.address);
+            let calcStaker0Rewards3 = ethers.utils.parseEther((4 * ONE_DAY_BLOCK).toString());
+            expect(estStaker0Rewards.locked).to.equal(calcStaker0Rewards0.add(calcStaker0Rewards1).add(calcStaker0Rewards2).add(calcStaker0Rewards3));
+            expect(estStaker0Rewards.dist).to.equal(0);
+
+            estStaker1Rewards = await cmtStaking.estimatedRewards(validator1.address, staker1.address);
+            // the block reward of unstake
+            expect(estStaker1Rewards.locked).to.equal(calcStaker1Rewards0.add(calcStaker1Rewards1).add(calcStaker1Rewards2));
+            expect(estStaker1Rewards.dist).to.equal(0);
+        })
+
+        it("user stake again after one month", async function () {
+            const { cmtStaking, validator1, addrs, owner } = await loadFixture(deployTokenFixture);
+
+            // staker: stake 1 eth
+            const staker = addrs[0];
+            const stakeAmount = ethers.utils.parseEther('1');
+            await cmtStaking.connect(staker).stake(validator1.address, { value: stakeAmount });
+
+            // staker: unstake 1 eth
+            await cmtStaking.connect(staker).unstake(validator1.address, stakeAmount, staker.address);
+
+            // run for one month
+            const ONE_DAY_BLOCK = 60 * 60 * 24;
+            const blocksInJan = ONE_DAY_BLOCK * 31;
+            await mine(blocksInJan);
+
+            // staker: stake 1 eth
+            await cmtStaking.connect(staker).stake(validator1.address, { value: stakeAmount });
+            let estStakerRewards = await cmtStaking.estimatedRewards(validator1.address, staker.address);
+
+            // only the block of unstake has reward
+            const calcStakerRewards = ethers.utils.parseEther((4 * 1).toString());
+            expect(estStakerRewards.dist).to.equal(calcStakerRewards);
+        })
     })
 });

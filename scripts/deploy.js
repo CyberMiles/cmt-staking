@@ -5,8 +5,10 @@ async function main() {
     console.log("Deploying contracts with the account:", deployer.address);
     console.log("Account balance:", (await deployer.getBalance()).toString());
 
-    const CMTStaking = await ethers.getContractFactory('CMTStaking');
-    const initializeParams = ['0x945e9704D2735b420363071bB935ACf2B9C4b814'];
+    const CMTStaking = await ethers.getContractFactory('CMTStakingV2');
+    const ownerAddr = '0x945e9704D2735b420363071bB935ACf2B9C4b814';
+    const initValidatorAddr = '0x945e9704D2735b420363071bB935ACf2B9C4b814';
+    const initializeParams = [ownerAddr, initValidatorAddr];
     const constructorParams = [ethers.utils.parseEther('0.0001')];
     console.log("Deploying ...");
     console.log(`Initialize params: ${initializeParams}`);

@@ -336,8 +336,8 @@ contract CMTStakingV2 is
         if (stakeAmount == 0) {
             if (distBlock > pool.updateBlock) {
                 pool.distAUR = pool.lastAUR;
-                pool.updateBlock = block.number;
             }
+            pool.updateBlock = block.number;
             return pool;
         }
         if (distBlock > pool.updateBlock) {
