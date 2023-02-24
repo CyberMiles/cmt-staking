@@ -318,6 +318,7 @@ contract CMTStakingV3 is
     }
 
     function _initiateWithdrawal(address account, uint256 amount) internal {
+        require(amount >= MIN_WITHDRAW_AMOUNT, "withdraw amount must >= MIN_WITHDRAW_AMOUNT");
         DoubleEndedQueue.Bytes32Deque storage queue = withdrawTable[account];
         uint256 oldAmount = 0;
         if (!queue.empty()) {
@@ -389,10 +390,13 @@ contract CMTStakingV3 is
         StakeInfo memory sInfo,
         uint256 amount
     ) internal pure returns (uint256 unstaked, uint256 reward) {
+        uint256 maxAmount = sInfo.stakeAmount + sInfo.pendingReward;
         require(amount <= sInfo.stakeAmount + sInfo.pendingReward, "Insufficient balance.");
         reward = sInfo.pendingReward;
         sInfo.pendingReward = 0;
-        if (amount <= reward) {
+        if (amount == 0) {
+            amount = maxAmount;
+        } else if (amount <= reward) {
             return (0, reward);
         }
         unstaked = amount - reward;
