@@ -266,6 +266,9 @@ contract CMTStakingV3 is
     function pendingReward(address validator, address staker) external view returns (uint256) {
         StakeInfo memory info = stakeTable[validator][staker];
         Pool memory pool = isActiveValidator(validator) ? stakerPool : inactivePools[validator];
+        if (isActiveValidator(validator)) {
+            _updatePool(pool, stakerRewardPerBlock, activeStakeAmount);
+        }
         _updateRewards(pool, info);
         return info.pendingReward;
     }
@@ -357,6 +360,7 @@ contract CMTStakingV3 is
         uint256 stakeAmount
     ) internal view returns (Pool memory) {
         if (stakeAmount == 0) {
+            pool.updateBlock = block.number;
             return pool;
         }
         uint256 reward = (block.number - pool.updateBlock) * rewardPerBlock;
