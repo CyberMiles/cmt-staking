@@ -399,12 +399,13 @@ contract CMTStakingV3 is
         uint256 maxAmount = sInfo.stakeAmount + sInfo.pendingReward;
         require(amount <= maxAmount, "Insufficient balance.");
         reward = sInfo.pendingReward;
-        sInfo.pendingReward = 0;
         if (amount == 0) {
             amount = maxAmount;
         } else if (amount <= reward) {
+            sInfo.pendingReward -= amount;
             return (0, amount);
         }
+        sInfo.pendingReward = 0;
         unstaked = amount - reward;
         vInfo.stakeAmount -= unstaked;
         sInfo.stakeAmount -= unstaked;
