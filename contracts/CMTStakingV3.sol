@@ -403,7 +403,7 @@ contract CMTStakingV3 is
         if (amount == 0) {
             amount = maxAmount;
         } else if (amount <= reward) {
-            return (0, reward);
+            return (0, amount);
         }
         unstaked = amount - reward;
         vInfo.stakeAmount -= unstaked;
