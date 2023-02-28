@@ -10,7 +10,15 @@ const PRIVATE_KEY = process.env.PRIVATE_KEY;
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
-    solidity: "0.8.4",
+    solidity: {
+        version: "0.8.4",
+        settings: {
+            optimizer: {
+              enabled: true,
+              runs: 200,
+            },
+          },
+    },
     networks: {
         goerli: {
             url: `https://eth-goerli.alchemyapi.io/v2/${ALCHEMY_API_KEY}`,
@@ -24,8 +32,8 @@ module.exports = {
             gas: 10e6,
         },
         cmt_new: {
-            url: `http://3.80.188.227`,
-            chainId: 20221130,
+            url: `http://3.85.226.255`,
+            chainId: 20,
             accounts: [PRIVATE_KEY],
             gas: 10e6,
         },
