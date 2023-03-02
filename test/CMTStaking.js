@@ -757,6 +757,12 @@ describe('CMTStaking contract', function () {
             })
 
             await mine(7 * ONE_DAY_BLOCKS + 1, { interval: BLOCK_INTERVAL });
+
+            // due withdraw index will equal 2
+            const dueWithdraw = await cmtStaking.dueWithdrawalCount(staker.address, await time.latest());
+            expect(dueWithdraw).to.equal(2);
+
+            // complete withdraw withdrawId 0 and 1
             await cmtStaking.connect(staker).completeWithdraw(staker.address, 0);
             await cmtStaking.connect(staker).completeWithdraw(staker.address, 1);
             myWithdraw0 = await cmtStaking.connect(staker).withdrawTable(staker.address, 0);
