@@ -3,14 +3,14 @@
   "proxies": [
     {
       "address": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
-      "txHash": "0xb0458327decea2ca88fb5850904ca1a04a24b69f574b3532d6ff3a328c644c5d",
+      "txHash": "0x7c98f44a77a297b88e3a4e81792dbad3ddb115052ac575c07a1ab86008b931f4",
       "kind": "uups"
     }
   ],
   "impls": {
-    "9071f75beefe098e536e4375126f9c3bb4c9535af87657fa6af00ac0917e2666": {
+    "685905bd492af5f68b71a82241a597ae158e034da465d22d5d928b0673481700": {
       "address": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
-      "txHash": "0x55c2c848af16ed1ea21caadd537e2b172d5d823b595c7f65e8d0cb7386514b18",
+      "txHash": "0xd61f53f9794e7eb6a16bcf498ba3fa68d9ec5991389b9a7551296fc915c2f60a",
       "layout": {
         "solcVersion": "0.8.4",
         "storage": [
@@ -109,55 +109,55 @@
             "slot": "301",
             "type": "t_address",
             "contract": "CMTStaking",
-            "src": "contracts/CMTStaking.sol:104"
+            "src": "contracts/CMTStaking.sol:39"
           },
           {
             "label": "_validators",
             "offset": 0,
             "slot": "302",
-            "type": "t_struct(AddressSet)3842_storage",
+            "type": "t_struct(AddressSet)1650_storage",
             "contract": "CMTStaking",
-            "src": "contracts/CMTStaking.sol:106"
+            "src": "contracts/CMTStaking.sol:41"
           },
           {
             "label": "validatorPool",
             "offset": 0,
             "slot": "304",
-            "type": "t_struct(Pool)4437_storage",
+            "type": "t_struct(Pool)1964_storage",
             "contract": "CMTStaking",
-            "src": "contracts/CMTStaking.sol:108"
+            "src": "contracts/CMTStaking.sol:43"
           },
           {
             "label": "stakerPool",
             "offset": 0,
             "slot": "306",
-            "type": "t_struct(Pool)4437_storage",
+            "type": "t_struct(Pool)1964_storage",
             "contract": "CMTStaking",
-            "src": "contracts/CMTStaking.sol:109"
+            "src": "contracts/CMTStaking.sol:44"
           },
           {
             "label": "inactivePools",
             "offset": 0,
             "slot": "308",
-            "type": "t_mapping(t_address,t_struct(Pool)4437_storage)",
+            "type": "t_mapping(t_address,t_struct(Pool)1964_storage)",
             "contract": "CMTStaking",
-            "src": "contracts/CMTStaking.sol:110"
+            "src": "contracts/CMTStaking.sol:45"
           },
           {
             "label": "stakeTable",
             "offset": 0,
             "slot": "309",
-            "type": "t_mapping(t_address,t_mapping(t_address,t_struct(StakeInfo)4446_storage))",
+            "type": "t_mapping(t_address,t_mapping(t_address,t_struct(StakeInfo)1973_storage))",
             "contract": "CMTStaking",
-            "src": "contracts/CMTStaking.sol:113"
+            "src": "contracts/CMTStaking.sol:48"
           },
           {
             "label": "withdrawTable",
             "offset": 0,
             "slot": "310",
-            "type": "t_mapping(t_address,t_struct(Bytes32Deque)3208_storage)",
+            "type": "t_mapping(t_address,t_array(t_struct(Withdrawal)1980_storage)dyn_storage)",
             "contract": "CMTStaking",
-            "src": "contracts/CMTStaking.sol:115"
+            "src": "contracts/CMTStaking.sol:50"
           },
           {
             "label": "validatorLimit",
@@ -165,7 +165,7 @@
             "slot": "311",
             "type": "t_uint32",
             "contract": "CMTStaking",
-            "src": "contracts/CMTStaking.sol:117"
+            "src": "contracts/CMTStaking.sol:52"
           },
           {
             "label": "lockPeriod",
@@ -173,7 +173,7 @@
             "slot": "311",
             "type": "t_uint32",
             "contract": "CMTStaking",
-            "src": "contracts/CMTStaking.sol:119"
+            "src": "contracts/CMTStaking.sol:54"
           },
           {
             "label": "validatorRewardPerBlock",
@@ -181,7 +181,7 @@
             "slot": "312",
             "type": "t_uint256",
             "contract": "CMTStaking",
-            "src": "contracts/CMTStaking.sol:121"
+            "src": "contracts/CMTStaking.sol:56"
           },
           {
             "label": "stakerRewardPerBlock",
@@ -189,7 +189,7 @@
             "slot": "313",
             "type": "t_uint256",
             "contract": "CMTStaking",
-            "src": "contracts/CMTStaking.sol:122"
+            "src": "contracts/CMTStaking.sol:57"
           },
           {
             "label": "totalStakeAmount",
@@ -197,7 +197,7 @@
             "slot": "314",
             "type": "t_uint256",
             "contract": "CMTStaking",
-            "src": "contracts/CMTStaking.sol:124"
+            "src": "contracts/CMTStaking.sol:59"
           },
           {
             "label": "activeStakeAmount",
@@ -205,7 +205,7 @@
             "slot": "315",
             "type": "t_uint256",
             "contract": "CMTStaking",
-            "src": "contracts/CMTStaking.sol:125"
+            "src": "contracts/CMTStaking.sol:60"
           }
         ],
         "types": {
@@ -215,6 +215,10 @@
           },
           "t_array(t_bytes32)dyn_storage": {
             "label": "bytes32[]",
+            "numberOfBytes": "32"
+          },
+          "t_array(t_struct(Withdrawal)1980_storage)dyn_storage": {
+            "label": "struct CMTStaking.Withdrawal[]",
             "numberOfBytes": "32"
           },
           "t_array(t_uint256)49_storage": {
@@ -233,23 +237,19 @@
             "label": "bytes32",
             "numberOfBytes": "32"
           },
-          "t_int128": {
-            "label": "int128",
-            "numberOfBytes": "16"
+          "t_mapping(t_address,t_array(t_struct(Withdrawal)1980_storage)dyn_storage)": {
+            "label": "mapping(address => struct CMTStaking.Withdrawal[])",
+            "numberOfBytes": "32"
           },
-          "t_mapping(t_address,t_mapping(t_address,t_struct(StakeInfo)4446_storage))": {
+          "t_mapping(t_address,t_mapping(t_address,t_struct(StakeInfo)1973_storage))": {
             "label": "mapping(address => mapping(address => struct CMTStaking.StakeInfo))",
             "numberOfBytes": "32"
           },
-          "t_mapping(t_address,t_struct(Bytes32Deque)3208_storage)": {
-            "label": "mapping(address => struct DoubleEndedQueue.Bytes32Deque)",
-            "numberOfBytes": "32"
-          },
-          "t_mapping(t_address,t_struct(Pool)4437_storage)": {
+          "t_mapping(t_address,t_struct(Pool)1964_storage)": {
             "label": "mapping(address => struct CMTStaking.Pool)",
             "numberOfBytes": "32"
           },
-          "t_mapping(t_address,t_struct(StakeInfo)4446_storage)": {
+          "t_mapping(t_address,t_struct(StakeInfo)1973_storage)": {
             "label": "mapping(address => struct CMTStaking.StakeInfo)",
             "numberOfBytes": "32"
           },
@@ -257,47 +257,19 @@
             "label": "mapping(bytes32 => uint256)",
             "numberOfBytes": "32"
           },
-          "t_mapping(t_int128,t_bytes32)": {
-            "label": "mapping(int128 => bytes32)",
-            "numberOfBytes": "32"
-          },
-          "t_struct(AddressSet)3842_storage": {
+          "t_struct(AddressSet)1650_storage": {
             "label": "struct EnumerableSet.AddressSet",
             "members": [
               {
                 "label": "_inner",
-                "type": "t_struct(Set)3541_storage",
+                "type": "t_struct(Set)1349_storage",
                 "offset": 0,
                 "slot": "0"
               }
             ],
             "numberOfBytes": "64"
           },
-          "t_struct(Bytes32Deque)3208_storage": {
-            "label": "struct DoubleEndedQueue.Bytes32Deque",
-            "members": [
-              {
-                "label": "_begin",
-                "type": "t_int128",
-                "offset": 0,
-                "slot": "0"
-              },
-              {
-                "label": "_end",
-                "type": "t_int128",
-                "offset": 16,
-                "slot": "0"
-              },
-              {
-                "label": "_data",
-                "type": "t_mapping(t_int128,t_bytes32)",
-                "offset": 0,
-                "slot": "1"
-              }
-            ],
-            "numberOfBytes": "64"
-          },
-          "t_struct(Pool)4437_storage": {
+          "t_struct(Pool)1964_storage": {
             "label": "struct CMTStaking.Pool",
             "members": [
               {
@@ -315,7 +287,7 @@
             ],
             "numberOfBytes": "64"
           },
-          "t_struct(Set)3541_storage": {
+          "t_struct(Set)1349_storage": {
             "label": "struct EnumerableSet.Set",
             "members": [
               {
@@ -333,7 +305,7 @@
             ],
             "numberOfBytes": "64"
           },
-          "t_struct(StakeInfo)4446_storage": {
+          "t_struct(StakeInfo)1973_storage": {
             "label": "struct CMTStaking.StakeInfo",
             "members": [
               {
@@ -363,6 +335,30 @@
             ],
             "numberOfBytes": "128"
           },
+          "t_struct(Withdrawal)1980_storage": {
+            "label": "struct CMTStaking.Withdrawal",
+            "members": [
+              {
+                "label": "amount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "completed",
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "timestamp",
+                "type": "t_uint64",
+                "offset": 1,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
           "t_uint256": {
             "label": "uint256",
             "numberOfBytes": "32"
@@ -370,6 +366,10 @@
           "t_uint32": {
             "label": "uint32",
             "numberOfBytes": "4"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
           },
           "t_uint8": {
             "label": "uint8",

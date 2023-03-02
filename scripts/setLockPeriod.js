@@ -5,7 +5,7 @@ async function main() {
     console.log("Operate contracts with the account:", owner.address);
     console.log("Account balance:", (await owner.getBalance()).toString());
 
-    const CMTStakingAddress = "0xe5B22d8240F479f34aBA4913A67964f3Df9dAFCc";
+    const CMTStakingAddress = "0x1016A0886b4AeD69043367d501a99cfBAaB052B5";
     const cmtStaking = await ethers.getContractAt('CMTStaking', CMTStakingAddress);
 
     const ONE_DAY = 60 * 60 * 24;
