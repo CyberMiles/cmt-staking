@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts/utils/structs/DoubleEndedQueue.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
@@ -17,7 +16,6 @@ contract CMTStakingMock is
     OwnableUpgradeable,
     UUPSUpgradeable
 {
-    using DoubleEndedQueue for DoubleEndedQueue.Bytes32Deque;
     using EnumerableSet for EnumerableSet.AddressSet;
 
     struct Pool {
@@ -34,7 +32,8 @@ contract CMTStakingMock is
 
     struct Withdrawal {
         uint256 amount;
-        uint256 timestamp;
+        bool completed;
+        uint64 timestamp;
     }
 
     address public keeper;
@@ -48,7 +47,7 @@ contract CMTStakingMock is
     // validator => staker => stake info
     mapping(address => mapping(address => StakeInfo)) public stakeTable;
 
-    mapping(address => DoubleEndedQueue.Bytes32Deque) public withdrawTable;
+    mapping(address => Withdrawal[]) public withdrawTable;
 
     uint32 public validatorLimit;
 
@@ -69,9 +68,15 @@ contract CMTStakingMock is
     event LockPeriodChanged(uint32 newLockPeriod);
     event ValidatorChanged(address validator, bool isValid);
     event Stake(address indexed staker, address indexed validator, uint256 amount);
-    event Unstake(address indexed staker, address indexed validator, uint256 unstakeAmount, uint256 claimedReward);
-    event WithdrawalInitiated(address indexed account, uint256 amount);
-    event WithdrawalCompleted(address indexed account, address indexed recipient, uint256 amount);
+    event Unstake(
+        address indexed staker,
+        address indexed validator,
+        uint256 unstakeAmount,
+        uint256 claimedReward,
+        uint256 withdrawalId
+    );
+    event WithdrawalInitiated(address indexed account, uint256 withdrawalId, uint256 amount);
+    event WithdrawalCompleted(address indexed account, address indexed recipient, uint256 withdrawalId, uint256 amount);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor(uint256 minStakeAmount, uint256 minWithdrawAmount) {
@@ -254,13 +259,13 @@ contract CMTStakingMock is
 
         totalStakeAmount -= unstaked;
 
-        emit Unstake(msg.sender, validator, unstaked, reward);
+        emit Unstake(msg.sender, validator, unstaked, reward, withdrawTable[msg.sender].length);
 
         _initiateWithdrawal(msg.sender, unstaked + reward);
     }
 
-    function completeWithdraw(address payable recipient, uint256 amount) external {
-        _completeWithdrawal(msg.sender, recipient, amount);
+    function completeWithdraw(address payable recipient, uint256 withdrawalId) external {
+        _completeWithdrawal(msg.sender, recipient, withdrawalId);
     }
 
     function pendingReward(address validator, address staker) external view returns (uint256) {
@@ -284,32 +289,19 @@ contract CMTStakingMock is
         return info.pendingReward;
     }
 
-    function pendingWithdrawals(address account) external view returns (Withdrawal[] memory withdrawals) {
-        DoubleEndedQueue.Bytes32Deque storage queue = withdrawTable[account];
-        uint256 length = queue.length();
-        withdrawals = new Withdrawal[](length);
-        for (uint256 i = 0; i < length; ++i) {
-            (uint256 amount, uint256 timestamp) = _decodeWithdrawal(queue.at(i));
-            withdrawals[i] = Withdrawal(amount, timestamp);
-        }
-    }
-
-    function dueWithdrawalAmount(address account) external view returns (uint256) {
-        return dueWithdrawalAmount(account, block.timestamp);
-    }
-
-    function dueWithdrawalAmount(address account, uint256 timestamp) public view returns (uint256) {
-        DoubleEndedQueue.Bytes32Deque storage queue = withdrawTable[account];
-        uint256 amount = 0;
-        uint256 length = queue.length();
-        for (uint256 i = 0; i < length; ++i) {
-            (uint256 available, uint256 recordTimestamp) = _decodeWithdrawal(queue.at(i));
-            if (recordTimestamp + lockPeriod > timestamp) {
-                break;
+    function dueWithdrawalCount(address account, uint256 timestamp) external view returns (uint256) {
+        Withdrawal[] memory withdrawals = withdrawTable[account];
+        uint256 left = 0;
+        uint256 right = withdrawals.length;
+        while (left < right) {
+            uint256 mid = (left + right) / 2;
+            if (timestamp >= withdrawals[mid].timestamp + lockPeriod) {
+                left = mid + 1;
+            } else {
+                right = mid;
             }
-            amount += available;
         }
-        return amount;
+        return right;
     }
 
     function isActiveValidator(address validator) public view returns (bool) {
@@ -320,42 +312,20 @@ contract CMTStakingMock is
         return _validators.values();
     }
 
-    function _encodeWithdrawal(uint256 amount, uint256 timestamp) internal pure returns (bytes32 value) {
-        require(amount <= type(uint224).max && timestamp <= type(uint32).max, "Invalid withdrawal");
-        value = bytes32((amount << 32) | timestamp);
-    }
-
-    function _decodeWithdrawal(bytes32 value) internal pure returns (uint256 amount, uint256 timestamp) {
-        uint256 temp = uint256(value);
-        amount = temp >> 32;
-        timestamp = temp & (2 ** 32 - 1);
-    }
-
     function _initiateWithdrawal(address account, uint256 amount) internal {
-        require(amount >= MIN_WITHDRAW_AMOUNT, "withdraw amount must >= MIN_WITHDRAW_AMOUNT");
-        withdrawTable[account].pushBack(_encodeWithdrawal(amount, block.timestamp));
-        emit WithdrawalInitiated(account, amount);
+        require(amount >= MIN_WITHDRAW_AMOUNT, "Withdrawal amount must >= MIN_WITHDRAW_AMOUNT.");
+        uint256 withdrawalId = withdrawTable[account].length;
+        withdrawTable[account].push(Withdrawal(amount, false, uint64(block.timestamp)));
+        emit WithdrawalInitiated(account, withdrawalId, amount);
     }
 
-    function _completeWithdrawal(address account, address payable recipient, uint256 amount) internal {
-        DoubleEndedQueue.Bytes32Deque storage queue = withdrawTable[account];
-        uint256 sum = 0;
-        while (!queue.empty()) {
-            (uint256 available, uint256 timestamp) = _decodeWithdrawal(queue.front());
-            if (timestamp + lockPeriod > block.timestamp) {
-                break;
-            }
-            sum += available;
-            queue.popFront();
-            if (sum > amount) {
-                queue.pushFront(_encodeWithdrawal(sum - amount, timestamp));
-                sum = amount;
-                break;
-            }
-        }
-        require(sum == amount, "Insufficient withdrawable amount.");
-        emit WithdrawalCompleted(account, recipient, amount);
-        _sendValue(recipient, amount);
+    function _completeWithdrawal(address account, address payable recipient, uint256 withdrawalId) internal {
+        Withdrawal storage w = withdrawTable[account][withdrawalId];
+        require(!w.completed, "Withdrawal is completed.");
+        require(block.timestamp >= w.timestamp + lockPeriod, "Withdrawal is in lock period.");
+        w.completed = true;
+        emit WithdrawalCompleted(account, recipient, withdrawalId, w.amount);
+        _sendValue(recipient, w.amount);
     }
 
     function _updatePools() internal returns (Pool memory vPool, Pool memory sPool) {

@@ -301,16 +301,18 @@ describe('CMTStaking contract', function () {
             tx = await cmtStaking.connect(staker).unstake(validator1.address, 0);
             confirm = await tx.wait();
 
-            // unstake will triggle initialWithdraw, a Withdrawal record is generated.
-            let stakerWithdraw = (await cmtStaking.pendingWithdrawals(staker.address))[0];
+            // unstake will triggle initiateWithdrawal, a Withdrawal record is generated.
+            let stakerWithdraw = await cmtStaking.withdrawTable(staker.address, 0);
             expect(stakerWithdraw.amount).to.equal(calcStakerRewards.add(stakeAmount).add(STAKER_REWARD_PER_BLOCK.mul(1)));
+            expect(stakerWithdraw.completed).to.be.false;
 
-            // ########## validator initial withdraw reward ##########
+            // ########## validator initiate withdrawal reward ##########
             tx = await cmtStaking.connect(validator1).validatorWithdraw(estValidatorRewards.add(VALIDATOR_REWARD_PER_BLOCK.mul(1)));
             confirm = await tx.wait();
 
-            let validatorWithdraw = (await cmtStaking.pendingWithdrawals(validator1.address))[0];
+            let validatorWithdraw = await cmtStaking.withdrawTable(validator1.address, 0);
             expect(validatorWithdraw.amount).to.equal(estValidatorRewards.add(VALIDATOR_REWARD_PER_BLOCK.mul(1)));
+            expect(validatorWithdraw.completed).to.false;
 
             // ########## EOA transfer rewards to contract ##########
             const calcTotalRewards = STAKER_REWARD_PER_BLOCK.add(VALIDATOR_REWARD_PER_BLOCK).mul(ONE_DAY_BLOCKS).add(STAKER_REWARD_PER_BLOCK.mul(1)).add(VALIDATOR_REWARD_PER_BLOCK.mul(1));
@@ -327,32 +329,46 @@ describe('CMTStaking contract', function () {
             // roll to 7 days later (+1 to over 7 days) to meet to withdraw minimal requirement
             await mine(7 * ONE_DAY_BLOCKS + 1, { interval: BLOCK_INTERVAL });
 
-            // check withdraw data
-            stakerWithdraw = (await cmtStaking.pendingWithdrawals(staker.address))[0];
+            // check staker withdrawable data
+            const stakerWithdrawableRecordUntilIndex = await cmtStaking.dueWithdrawalCount(staker.address, await time.latest());
+            expect(stakerWithdrawableRecordUntilIndex).to.equal(1);
+
+            stakerWithdraw = await cmtStaking.withdrawTable(staker.address, stakerWithdrawableRecordUntilIndex - 1);
             // stakerWithdraw amount should be the same with above fetch
             expect(stakerWithdraw.amount).to.equal(calcStakerRewards.add(stakeAmount).add(STAKER_REWARD_PER_BLOCK.mul(1)));
             // stakerWithdraw timestamp + 7 days should less than current timestamp
             expect(stakerWithdraw.timestamp.toNumber() + 7 * ONE_DAY).to.lessThan(await time.latest());
 
-            // hardhat overloading bugs: https://github.com/ethers-io/ethers.js/issues/407
-            validatorWithdraw = await cmtStaking['dueWithdrawalAmount(address)'](validator1.address);
-            expect(validatorWithdraw).to.equal(estValidatorRewards.add(VALIDATOR_REWARD_PER_BLOCK.mul(1)));
-
             // staker complete withdraw
             const stakerReceiver = addrs[2];
             const stakerReceiverBalanceBefore = await stakerReceiver.getBalance();
-            tx = await cmtStaking.connect(staker).completeWithdraw(stakerReceiver.address, stakerWithdraw.amount);
+            tx = await cmtStaking.connect(staker).completeWithdraw(stakerReceiver.address, stakerWithdrawableRecordUntilIndex - 1);
             confirm = await tx.wait();
             const stakerReceiverBalanceAfter = await stakerReceiver.getBalance();
             expect(stakerReceiverBalanceAfter.sub(stakerReceiverBalanceBefore)).to.equal(stakerWithdraw.amount);
 
+            // withdraw record completed status should be true
+            stakerWithdraw = await cmtStaking.withdrawTable(staker.address, stakerWithdrawableRecordUntilIndex - 1);
+            expect(stakerWithdraw.completed).to.true;
+
+            // check validator withdrawable data
+            const validator1WithdrawableRecordUntilIndex = await cmtStaking.dueWithdrawalCount(validator1.address, await time.latest());
+            expect(validator1WithdrawableRecordUntilIndex).to.equal(1);
+
             // validator complete withdraw
             const validatorRewardReceiver = addrs[3];
             const validatorReceiverBalanceBefore = await validatorRewardReceiver.getBalance();
-            tx = await cmtStaking.connect(validator1).completeWithdraw(validatorRewardReceiver.address, estValidatorRewards.add(VALIDATOR_REWARD_PER_BLOCK.mul(1)));
+            tx = await cmtStaking.connect(validator1).completeWithdraw(validatorRewardReceiver.address, validator1WithdrawableRecordUntilIndex - 1);
             confirm = await tx.wait();
             const validatorReceiverBalanceAfter = await validatorRewardReceiver.getBalance();
             expect(validatorReceiverBalanceAfter.sub(validatorReceiverBalanceBefore)).to.equal(estValidatorRewards.add(VALIDATOR_REWARD_PER_BLOCK.mul(1)));
+
+            // withdraw record completed status should be true
+            validatorWithdraw = await cmtStaking.withdrawTable(validator1.address, validator1WithdrawableRecordUntilIndex - 1);
+            expect(validatorWithdraw.completed).to.true;
+
+            // cannot withdraw already been withdrawn record
+            await expect(cmtStaking.connect(validator1).completeWithdraw(validatorRewardReceiver.address, validator1WithdrawableRecordUntilIndex - 1)).to.be.revertedWith("Withdrawal is completed.");
 
             // check contract state after unstake
             sInfo = await cmtStaking.stakeTable(validator1.address, staker.address);
@@ -436,9 +452,8 @@ describe('CMTStaking contract', function () {
             await cmtStaking.connect(staker).unstake(validator1.address, stakeAmount.add(STAKER_REWARD_PER_BLOCK.mul(1)));
             // travel to 7 days later
             await mine(7 * ONE_DAY_BLOCKS + 1, { interval: BLOCK_INTERVAL });
-            // complete withdraw
-            await expect(cmtStaking.connect(staker).completeWithdraw(staker.address, stakeAmount.add(STAKER_REWARD_PER_BLOCK.mul(1)))).to.be.revertedWith("Failed to send native token.");
-
+            // complete withdraw with withdrawId 0
+            await expect(cmtStaking.connect(staker).completeWithdraw(staker.address, 0)).to.be.revertedWith("Failed to send native token.");
         })
 
         it("staker cannot get reward if the staking's validator get deactivated", async function () {
@@ -495,7 +510,7 @@ describe('CMTStaking contract', function () {
             // staker complete withdraw
             const stakerReceiver = addrs[2];
             const balanceBefore = await stakerReceiver.getBalance();
-            tx = await cmtStaking.connect(staker).completeWithdraw(stakerReceiver.address, calcStakerRewards);
+            tx = await cmtStaking.connect(staker).completeWithdraw(stakerReceiver.address, 0);
             confirm = await tx.wait();
             const balanceAfter = await stakerReceiver.getBalance();
             const stakerUnstakeAmount = balanceAfter.sub(balanceBefore);
@@ -504,10 +519,10 @@ describe('CMTStaking contract', function () {
             sInfo = await cmtStaking.stakeTable(validator1.address, staker.address);
             expect(sInfo.pendingReward).to.equal(0);
 
-            // validator1 conplete withdraw
+            // validator1 complete withdraw
             const validatorRewardReceiver = addrs[3];
             const validatorReceiverBalanceBefore = await validatorRewardReceiver.getBalance();
-            tx = await cmtStaking.connect(validator1).completeWithdraw(validatorRewardReceiver.address, calcValidatorRewards);
+            tx = await cmtStaking.connect(validator1).completeWithdraw(validatorRewardReceiver.address, 0);
             confirm = await tx.wait();
             const validatorReceiverBalanceAfter = await validatorRewardReceiver.getBalance();
             expect(validatorReceiverBalanceAfter.sub(validatorReceiverBalanceBefore)).to.equal(calcValidatorRewards);
@@ -582,7 +597,7 @@ describe('CMTStaking contract', function () {
 
             // staker: unstake all
             await cmtStaking.connect(staker).unstake(validator1.address, 0);
-            const pendingWithdrawal = (await cmtStaking.pendingWithdrawals(staker.address))[0];
+            const pendingWithdrawal = await cmtStaking.withdrawTable(staker.address, 0);
             // only the block of unstake has reward
             expect(pendingWithdrawal.amount).to.equal(stakeAmount.add(STAKER_REWARD_PER_BLOCK.mul(1)));
 
@@ -627,7 +642,7 @@ describe('CMTStaking contract', function () {
 
             // staker0 unstake all. 
             await cmtStaking.connect(staker0).unstake(validator1.address, 0);
-            const staker0Withdraw = (await cmtStaking.pendingWithdrawals(staker0.address))[0];
+            const staker0Withdraw = await cmtStaking.withdrawTable(staker0.address, 0);
             // unstake amount need add half of block reward of unstake op and stake amount.
             expect(staker0Withdraw.amount).to.equal(estStaker0Reward.add(STAKER_REWARD_PER_BLOCK.mul(1).div(2)).add(stakeAmount));
 
@@ -678,13 +693,13 @@ describe('CMTStaking contract', function () {
 
             // staker: unstake 
             await cmtStaking.connect(staker).unstake(validator1.address, 0);
-            const pendingWithdrawal = (await cmtStaking.pendingWithdrawals(staker.address))[0];
+            const pendingWithdrawal = await cmtStaking.withdrawTable(staker.address, 0);
             // only the block of unstake has reward
             expect(pendingWithdrawal.amount).to.equal(stakeAmount.add(STAKER_REWARD_PER_BLOCK.mul(ONE_DAY_BLOCKS + 1)));
 
             // connot complete withdraw if lock period is not reached
-            expect(await cmtStaking['dueWithdrawalAmount(address)'](staker.address)).to.equal(0);
-            await expect(cmtStaking.connect(staker).completeWithdraw(staker.address, pendingWithdrawal.amount)).to.be.revertedWith("Insufficient withdrawable amount.");
+            expect(await cmtStaking.dueWithdrawalCount(staker.address, await time.latest())).to.equal(0);
+            await expect(cmtStaking.connect(staker).completeWithdraw(staker.address, 0)).to.be.revertedWith("Withdrawal is in lock period.");
         })
 
         it("connot unstake amount less than MIN_WITHDRAW_AMOUNT", async function () {
@@ -701,7 +716,7 @@ describe('CMTStaking contract', function () {
             const WRONG_MIN_WITHDRAW_AMOUNT = parseEther('0.00005');
 
             // staker: unstake 
-            await expect(cmtStaking.connect(staker).unstake(validator1.address, WRONG_MIN_WITHDRAW_AMOUNT)).to.be.revertedWith("withdraw amount must >= MIN_WITHDRAW_AMOUNT");
+            await expect(cmtStaking.connect(staker).unstake(validator1.address, WRONG_MIN_WITHDRAW_AMOUNT)).to.be.revertedWith("Withdrawal amount must >= MIN_WITHDRAW_AMOUNT.");
         })
 
         it("able to withdraw partial rewards", async function () {
@@ -727,25 +742,27 @@ describe('CMTStaking contract', function () {
             const sInfo = await cmtStaking.stakeTable(validator1.address, staker.address);
             expect(sInfo.stakeAmount).to.equal(STAKER_REWARD_PER_BLOCK.mul(2));
 
-            let myWithdraw = await cmtStaking.connect(staker).pendingWithdrawals(staker.address);
-            expect(myWithdraw[0].amount).to.equal(withdrawAmount.div(2));
-            expect(myWithdraw[1].amount).to.equal(withdrawAmount.div(2));
+            let myWithdraw0 = await cmtStaking.connect(staker).withdrawTable(staker.address, 0);
+            expect(myWithdraw0.amount).to.equal(withdrawAmount.div(2));
+            let myWithdraw1 = await cmtStaking.connect(staker).withdrawTable(staker.address, 1);
+            expect(myWithdraw1.amount).to.equal(withdrawAmount.div(2));
 
-            // complete withdraw after locked period and intentional make a leftover withdraw
-            const leftRewards = parseEther('0.5');
-            const receiveRewards = withdrawAmount.sub(leftRewards);
+            // complete withdraw after locked period
             const someExtraForGasFee = parseEther('1');
             const miner = addrs[1];
-            await setBalance(miner.address, receiveRewards.add(someExtraForGasFee));
+            await setBalance(miner.address, withdrawAmount.add(someExtraForGasFee));
             await miner.sendTransaction({
                 to: cmtStaking.address,
-                value: receiveRewards
+                value: withdrawAmount
             })
 
             await mine(7 * ONE_DAY_BLOCKS + 1, { interval: BLOCK_INTERVAL });
-            await cmtStaking.connect(staker).completeWithdraw(staker.address, receiveRewards);
-            myWithdraw = await cmtStaking.connect(staker).pendingWithdrawals(staker.address);
-            expect(myWithdraw[0].amount).to.equal(leftRewards);
+            await cmtStaking.connect(staker).completeWithdraw(staker.address, 0);
+            await cmtStaking.connect(staker).completeWithdraw(staker.address, 1);
+            myWithdraw0 = await cmtStaking.connect(staker).withdrawTable(staker.address, 0);
+            expect(myWithdraw0.completed).to.true;
+            myWithdraw1 = await cmtStaking.connect(staker).withdrawTable(staker.address, 1);
+            expect(myWithdraw1.completed).to.true;
         })
     })
 });
