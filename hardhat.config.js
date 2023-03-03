@@ -3,10 +3,21 @@ require("@openzeppelin/hardhat-upgrades");
 
 require("dotenv").config();
 
+const setLockPeriod = require("./scripts/tasks/setLockPeriod");
+const addValidator = require("./scripts/tasks/addValidator");
+
 const ALCHEMY_API_KEY = process.env.ALCHEMY_API_KEY;
 const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY;
 const BSCSCAN_API_KEY = process.env.BSCSCAN_API_KEY;
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
+
+task("setLockPeriod", "Owner can set lock perod", setLockPeriod)
+    .addParam("cmtContract", "cmt proxy contract address")
+    .addParam("lockPeriod", "the lock period in seconds");
+
+task("addValidator", "Owner can add validator", addValidator)
+    .addParam("cmtContract", "cmt proxy contract address")
+    .addParam("validatorAddress", "the validator address");
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
@@ -14,10 +25,10 @@ module.exports = {
         version: "0.8.4",
         settings: {
             optimizer: {
-              enabled: true,
-              runs: 200,
+                enabled: true,
+                runs: 200,
             },
-          },
+        },
     },
     networks: {
         goerli: {

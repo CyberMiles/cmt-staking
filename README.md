@@ -48,4 +48,25 @@ npx hardhat run scripts/deploy --network xxx
 npx hardhat run scripts/upgrade --network xxx
 ```
 
+## How to run customized tasks
+
+added folllowing tasks in scripts/tasks folder
+
+- setLockPeriod
+
+- addValidator
+
+
+```
+// run cmd to get more info to set task params
+npx hardhat taskName --help
+
+// below is an example to add validatoar in cmt network
+npx hardhat addValidator --cmt-contract 0x1016A0886b4AeD69043367d501a99cfBAaB052B5 --validator-address 0x401C89Ca6aE7201469882fD6c5ca0Dd462447479 --network cmt_new 
+```
+
+
+
+
+
 
