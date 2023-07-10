@@ -33,10 +33,11 @@ contract CMTStakingMock is
     struct Withdrawal {
         uint256 amount;
         bool completed;
-        uint64 timestamp;
+        uint64 initTime;
+        uint64 dueTime;
     }
 
-    address public keeper;
+    address public admin;
 
     EnumerableSet.AddressSet private _validators;
 
@@ -60,13 +61,17 @@ contract CMTStakingMock is
     uint256 public activeStakeAmount;
     uint256 public constant AUR_PREC = 1e18;
 
-    uint256 public immutable MIN_STAKE_AMOUNT;
-    uint256 public immutable MIN_WITHDRAW_AMOUNT;
+    uint256 public minStakeAmount;
+    uint256 public minWithdrawAmount;
 
     event Received(address indexed sender, uint256 amount);
+
     event RewardPerBlockChanged(uint256 validatorReward, uint256 stakerReward);
     event LockPeriodChanged(uint32 newLockPeriod);
     event ValidatorChanged(address validator, bool isValid);
+    event MinStakeAmountChanged(uint256 newAmount);
+    event MinWithdrawAmountChanged(uint256 newAmount);
+
     event Stake(address indexed staker, address indexed validator, uint256 amount);
     event Unstake(
         address indexed staker,
@@ -76,14 +81,11 @@ contract CMTStakingMock is
         uint256 withdrawalId
     );
     event WithdrawalInitiated(address indexed account, uint256 withdrawalId, uint256 amount);
-    event WithdrawalCompleted(address indexed account, address indexed recipient, uint256 withdrawalId, uint256 amount);
+    event WithdrawalCompleted(address indexed account, uint256 withdrawalId, uint256 amount);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(uint256 minStakeAmount, uint256 minWithdrawAmount) {
+    constructor() {
         _disableInitializers();
-        require(minStakeAmount >= 10 ** 9, "Invalid minimal stake amount.");
-        MIN_STAKE_AMOUNT = minStakeAmount;
-        MIN_WITHDRAW_AMOUNT = minWithdrawAmount;
     }
 
     function initialize(address owner, address validator) external initializer {
@@ -92,7 +94,7 @@ contract CMTStakingMock is
         _transferOwnership(owner);
         __UUPSUpgradeable_init();
 
-        keeper = msg.sender;
+        admin = msg.sender;
 
         // default maximum 21 validators
         validatorLimit = 21;
@@ -102,6 +104,12 @@ contract CMTStakingMock is
 
         // default 7 days withdrawal lock period
         _setLockPeriod(7 days);
+
+        // default 0.0001 CMT minimal stake amount
+        _setMinStakeAmount(10 ** 14);
+
+        // default 0.0001 CMT minimal withdraw amount
+        _setMinWithdrawAmount(10 ** 14);
 
         // minimum 1 validator
         _addValidator(validator);
@@ -135,13 +143,23 @@ contract CMTStakingMock is
     }
 
     function setLockPeriod(uint32 period) external onlyOwner {
-        require(period >= 1 days, "Invalid lock period.");
+        require(period >= 1 days && period <= 365 days, "Invalid lock period.");
         _setLockPeriod(period);
     }
 
-    function setKeeper(address newKeeper) external onlyOwner {
-        require(newKeeper != address(0), "Invalid keeper address.");
-        keeper = newKeeper;
+    function setMinStakeAmount(uint256 amount) external onlyOwner {
+        require(amount >= 1 gwei, "Invalid minimal stake amount.");
+        _setMinStakeAmount(amount);
+    }
+
+    function setMinWithdrawAmount(uint256 amount) external onlyOwner {
+        require(amount <= 10 ether, "Invalid minimal withdraw amount.");
+        _setMinWithdrawAmount(amount);
+    }
+
+    function setAdmin(address newAdmin) external onlyOwner {
+        require(newAdmin != address(0), "Invalid admin address.");
+        admin = newAdmin;
     }
 
     // set maximum num of validators
@@ -202,7 +220,7 @@ contract CMTStakingMock is
 
     // stake into a valid validator
     function stake(address validator) external payable whenNotPaused {
-        require(msg.value >= MIN_STAKE_AMOUNT, "Stake amount must >= MIN_STAKE_AMOUNT.");
+        require(msg.value >= minStakeAmount, "Stake amount must >= minStakeAmount.");
 
         require(isActiveValidator(validator), "Validator not exist or has been removed.");
 
@@ -264,8 +282,8 @@ contract CMTStakingMock is
         _initiateWithdrawal(msg.sender, unstaked + reward);
     }
 
-    function completeWithdraw(address payable recipient, uint256 withdrawalId) external {
-        _completeWithdrawal(msg.sender, recipient, withdrawalId);
+    function completeWithdraw(uint256 withdrawalId) external nonReentrant whenNotPaused {
+        _completeWithdrawal(payable(msg.sender), withdrawalId);
     }
 
     function pendingReward(address validator, address staker) external view returns (uint256) {
@@ -289,21 +307,6 @@ contract CMTStakingMock is
         return info.pendingReward;
     }
 
-    function dueWithdrawalCount(address account, uint256 timestamp) external view returns (uint256) {
-        Withdrawal[] memory withdrawals = withdrawTable[account];
-        uint256 left = 0;
-        uint256 right = withdrawals.length;
-        while (left < right) {
-            uint256 mid = (left + right) / 2;
-            if (timestamp >= withdrawals[mid].timestamp + lockPeriod) {
-                left = mid + 1;
-            } else {
-                right = mid;
-            }
-        }
-        return right;
-    }
-
     function isActiveValidator(address validator) public view returns (bool) {
         return _validators.contains(validator);
     }
@@ -313,19 +316,21 @@ contract CMTStakingMock is
     }
 
     function _initiateWithdrawal(address account, uint256 amount) internal {
-        require(amount >= MIN_WITHDRAW_AMOUNT, "Withdrawal amount must >= MIN_WITHDRAW_AMOUNT.");
+        require(amount >= minWithdrawAmount, "Withdrawal amount must >= minWithdrawAmount.");
         uint256 withdrawalId = withdrawTable[account].length;
-        withdrawTable[account].push(Withdrawal(amount, false, uint64(block.timestamp)));
+        withdrawTable[account].push(
+            Withdrawal(amount, false, uint64(block.timestamp), uint64(block.timestamp + lockPeriod))
+        );
         emit WithdrawalInitiated(account, withdrawalId, amount);
     }
 
-    function _completeWithdrawal(address account, address payable recipient, uint256 withdrawalId) internal {
-        Withdrawal storage w = withdrawTable[account][withdrawalId];
+    function _completeWithdrawal(address payable account, uint256 withdrawalId) internal {
+        Withdrawal memory w = withdrawTable[account][withdrawalId];
         require(!w.completed, "Withdrawal is completed.");
-        require(block.timestamp >= w.timestamp + lockPeriod, "Withdrawal is in lock period.");
-        w.completed = true;
-        emit WithdrawalCompleted(account, recipient, withdrawalId, w.amount);
-        _sendValue(recipient, w.amount);
+        require(block.timestamp >= w.dueTime, "Withdrawal is in lock period.");
+        withdrawTable[account][withdrawalId].completed = true;
+        emit WithdrawalCompleted(account, withdrawalId, w.amount);
+        _sendValue(account, w.amount);
     }
 
     function _updatePools() internal returns (Pool memory vPool, Pool memory sPool) {
@@ -354,11 +359,11 @@ contract CMTStakingMock is
         if (info.updateBlock == 0) {
             return;
         }
-        info.pendingReward += (info.stakeAmount * pool.lastAUR) / AUR_PREC - info.rewardDebt;
+        info.pendingReward += (info.stakeAmount * pool.lastAUR - info.rewardDebt) / AUR_PREC;
     }
 
     function _updateRewardDebt(Pool memory pool, StakeInfo memory info) internal pure {
-        info.rewardDebt = (info.stakeAmount * pool.lastAUR) / AUR_PREC;
+        info.rewardDebt = info.stakeAmount * pool.lastAUR;
     }
 
     function _unstake(
@@ -397,6 +402,16 @@ contract CMTStakingMock is
         emit LockPeriodChanged(period);
     }
 
+    function _setMinStakeAmount(uint256 amount) internal {
+        minStakeAmount = amount;
+        emit MinStakeAmountChanged(amount);
+    }
+
+    function _setMinWithdrawAmount(uint256 amount) internal {
+        minWithdrawAmount = amount;
+        emit MinWithdrawAmountChanged(amount);
+    }
+
     function _addValidator(address validator) internal {
         require(validator != address(0), "Invalid address.");
         require(_validators.length() < validatorLimit, "Validators are full.");
@@ -409,6 +424,6 @@ contract CMTStakingMock is
     }
 
     function _authorizeUpgrade(address newImplementation) internal view override {
-        require(msg.sender == keeper, "Only keeper can upgrade contract.");
+        require(msg.sender == admin, "Only admin can upgrade contract.");
     }
 }

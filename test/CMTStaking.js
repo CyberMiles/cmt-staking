@@ -3,14 +3,13 @@ const { expect } = require('chai');
 const { ethers, upgrades } = require('hardhat');
 
 const { utils, constants, getSigners, getContractFactory, provider, BigNumber } = ethers;
-const { parseEther, parseUnits } = utils;
+const { parseEther } = utils;
 const { AddressZero } = constants;
 const { getBalance } = provider;
 
 describe('CMTStaking contract', function () {
 
     const MIN_STAKE_AMOUNT = parseEther('0.0001');
-    const WRONG_MIN_STAKE_AMOUNT = parseUnits('0.1', 'gwei');
     const MIN_WITHDRAW_AMOUNT = parseEther('0.0001');
     const BLOCK_INTERVAL = 6;
     const ONE_DAY = 60 * 60 * 24;
@@ -23,13 +22,13 @@ describe('CMTStaking contract', function () {
 
         const [deployer, owner, normalUser, validator1, ...addrs] = await getSigners();
         const CMTStaking = await getContractFactory('CMTStaking');
-        await expect(upgrades.deployProxy(CMTStaking, [owner.address, validator1.address], { initializer: 'initialize', kind: 'uups', constructorArgs: [WRONG_MIN_STAKE_AMOUNT, MIN_WITHDRAW_AMOUNT], unsafeAllow: ['state-variable-immutable'] })).to.be.revertedWith('Invalid minimal stake amount.');
-        const cmtStaking = await upgrades.deployProxy(CMTStaking, [owner.address, validator1.address], { initializer: 'initialize', kind: 'uups', constructorArgs: [MIN_STAKE_AMOUNT, MIN_WITHDRAW_AMOUNT], unsafeAllow: ['state-variable-immutable'] })
+
+        const cmtStaking = await upgrades.deployProxy(CMTStaking, [owner.address, validator1.address], { initializer: 'initialize', kind: 'uups', constructorArgs: [], unsafeAllow: ['state-variable-immutable'] })
         await cmtStaking.deployed();
         expect(cmtStaking.deployTransaction.from).to.equal(deployer.address);
 
         const CMTStakingMock = await getContractFactory('CMTStakingMock');
-        const newImpl = await CMTStakingMock.deploy(MIN_STAKE_AMOUNT, MIN_WITHDRAW_AMOUNT);
+        const newImpl = await CMTStakingMock.deploy();
         await newImpl.deployed();
 
         return { cmtStaking, deployer, owner, normalUser, validator1, addrs, newImpl };
@@ -44,8 +43,8 @@ describe('CMTStaking contract', function () {
 
         it('constructor', async function () {
             const { cmtStaking } = await loadFixture(deployTokenFixture);
-            expect(await cmtStaking.MIN_STAKE_AMOUNT()).to.equal(MIN_STAKE_AMOUNT);
-            expect(await cmtStaking.MIN_WITHDRAW_AMOUNT()).to.equal(MIN_WITHDRAW_AMOUNT);
+            expect(await cmtStaking.minStakeAmount()).to.equal(MIN_STAKE_AMOUNT);
+            expect(await cmtStaking.minWithdrawAmount()).to.equal(MIN_WITHDRAW_AMOUNT);
         })
 
         it('initialize', async function () {
@@ -171,17 +170,17 @@ describe('CMTStaking contract', function () {
             await expect(cmtStaking.connect(owner).setRewardPerBlock(0)).to.be.revertedWith('Invalid reward per block.');
         })
 
-        it('only owner can set keeper', async function () {
+        it('only owner can set admin', async function () {
             const { cmtStaking, normalUser, owner } = await loadFixture(deployTokenFixture);
-            await expect(cmtStaking.connect(normalUser).setKeeper(normalUser.address)).to.be.revertedWith('Ownable: caller is not the owner');
+            await expect(cmtStaking.connect(normalUser).setAdmin(normalUser.address)).to.be.revertedWith('Ownable: caller is not the owner');
 
-            await cmtStaking.connect(owner).setKeeper(normalUser.address);
-            expect(await cmtStaking.keeper()).to.equal(normalUser.address);
+            await cmtStaking.connect(owner).setAdmin(normalUser.address);
+            expect(await cmtStaking.admin()).to.equal(normalUser.address);
         })
 
-        it('new keeper cannot be zero address', async function () {
+        it('new admin cannot be zero address', async function () {
             const { cmtStaking, owner } = await loadFixture(deployTokenFixture);
-            await expect(cmtStaking.connect(owner).setKeeper(constants.AddressZero)).to.be.revertedWith('Invalid keeper address.');
+            await expect(cmtStaking.connect(owner).setAdmin(constants.AddressZero)).to.be.revertedWith('Invalid admin address.');
         })
 
         it('only owner can set lock period', async function () {
@@ -198,23 +197,23 @@ describe('CMTStaking contract', function () {
         })
     })
 
-    describe('Keeper basis function test', function () {
+    describe('admin basis function test', function () {
         it('cannot initialize twice', async function () {
             const { cmtStaking, normalUser } = await loadFixture(deployTokenFixture);
             await expect(cmtStaking.connect(normalUser).initialize(normalUser.address, normalUser.address)).to.be.revertedWith('Initializable: contract is already initialized');
         })
 
-        it('only keeper can upgrade', async function () {
+        it('only admin can upgrade', async function () {
             const { cmtStaking, newImpl, owner } = await loadFixture(deployTokenFixture);
-            await expect(cmtStaking.connect(owner).upgradeTo(newImpl.address)).to.be.revertedWith('Only keeper can upgrade contract.');
+            await expect(cmtStaking.connect(owner).upgradeTo(newImpl.address)).to.be.revertedWith('Only admin can upgrade contract.');
         })
 
         it('upgrade to new version', async function () {
             const { cmtStaking, newImpl, deployer } = await loadFixture(deployTokenFixture);
-            const keeper = deployer;
+            const admin = deployer;
             const newVersion = 2;
             expect(await newImpl.getVersion()).to.equal(newVersion);
-            await cmtStaking.connect(keeper).upgradeTo(newImpl.address);
+            await cmtStaking.connect(admin).upgradeTo(newImpl.address);
             expect(await cmtStaking.getVersion()).to.equal(newVersion);
         })
     })
@@ -330,45 +329,46 @@ describe('CMTStaking contract', function () {
             await mine(7 * ONE_DAY_BLOCKS + 1, { interval: BLOCK_INTERVAL });
 
             // check staker withdrawable data
-            const stakerWithdrawableRecordUntilIndex = await cmtStaking.dueWithdrawalCount(staker.address, await time.latest());
-            expect(stakerWithdrawableRecordUntilIndex).to.equal(1);
+            const stakerWithdrawableRecordUntilIndex = 1
 
             stakerWithdraw = await cmtStaking.withdrawTable(staker.address, stakerWithdrawableRecordUntilIndex - 1);
             // stakerWithdraw amount should be the same with above fetch
             expect(stakerWithdraw.amount).to.equal(calcStakerRewards.add(stakeAmount).add(STAKER_REWARD_PER_BLOCK.mul(1)));
-            // stakerWithdraw timestamp + 7 days should less than current timestamp
-            expect(stakerWithdraw.timestamp.toNumber() + 7 * ONE_DAY).to.lessThan(await time.latest());
+            // stakerWithdraw initTime + 7 days should less than current timestamp
+            expect(stakerWithdraw.initTime.toNumber() + 7 * ONE_DAY).to.lessThan(await time.latest());
 
             // staker complete withdraw
-            const stakerReceiver = addrs[2];
+            await time.setNextBlockTimestamp(stakerWithdraw.initTime.toNumber() + 8 * ONE_DAY)
+            const stakerReceiver = addrs[0];
             const stakerReceiverBalanceBefore = await stakerReceiver.getBalance();
-            tx = await cmtStaking.connect(staker).completeWithdraw(stakerReceiver.address, stakerWithdrawableRecordUntilIndex - 1);
+            tx = await cmtStaking.connect(staker).completeWithdraw(stakerWithdrawableRecordUntilIndex - 1);
             confirm = await tx.wait();
             const stakerReceiverBalanceAfter = await stakerReceiver.getBalance();
-            expect(stakerReceiverBalanceAfter.sub(stakerReceiverBalanceBefore)).to.equal(stakerWithdraw.amount);
+            let gas = confirm.cumulativeGasUsed.mul(confirm.effectiveGasPrice)
+            expect(stakerReceiverBalanceAfter.sub(stakerReceiverBalanceBefore).add(gas)).to.equal(stakerWithdraw.amount);
 
             // withdraw record completed status should be true
             stakerWithdraw = await cmtStaking.withdrawTable(staker.address, stakerWithdrawableRecordUntilIndex - 1);
             expect(stakerWithdraw.completed).to.true;
 
             // check validator withdrawable data
-            const validator1WithdrawableRecordUntilIndex = await cmtStaking.dueWithdrawalCount(validator1.address, await time.latest());
-            expect(validator1WithdrawableRecordUntilIndex).to.equal(1);
+            const validator1WithdrawableRecordUntilIndex = 1
 
             // validator complete withdraw
-            const validatorRewardReceiver = addrs[3];
+            const validatorRewardReceiver = validator1;
             const validatorReceiverBalanceBefore = await validatorRewardReceiver.getBalance();
-            tx = await cmtStaking.connect(validator1).completeWithdraw(validatorRewardReceiver.address, validator1WithdrawableRecordUntilIndex - 1);
+            tx = await cmtStaking.connect(validator1).completeWithdraw(validator1WithdrawableRecordUntilIndex - 1);
             confirm = await tx.wait();
+            gas = confirm.cumulativeGasUsed.mul(confirm.effectiveGasPrice)
             const validatorReceiverBalanceAfter = await validatorRewardReceiver.getBalance();
-            expect(validatorReceiverBalanceAfter.sub(validatorReceiverBalanceBefore)).to.equal(estValidatorRewards.add(VALIDATOR_REWARD_PER_BLOCK.mul(1)));
+            expect(validatorReceiverBalanceAfter.sub(validatorReceiverBalanceBefore).add(gas)).to.equal(estValidatorRewards.add(VALIDATOR_REWARD_PER_BLOCK.mul(1)));
 
             // withdraw record completed status should be true
             validatorWithdraw = await cmtStaking.withdrawTable(validator1.address, validator1WithdrawableRecordUntilIndex - 1);
             expect(validatorWithdraw.completed).to.true;
 
             // cannot withdraw already been withdrawn record
-            await expect(cmtStaking.connect(validator1).completeWithdraw(validatorRewardReceiver.address, validator1WithdrawableRecordUntilIndex - 1)).to.be.revertedWith("Withdrawal is completed.");
+            await expect(cmtStaking.connect(validator1).completeWithdraw(validator1WithdrawableRecordUntilIndex - 1)).to.be.revertedWith("Withdrawal is completed.");
 
             // check contract state after unstake
             sInfo = await cmtStaking.stakeTable(validator1.address, staker.address);
@@ -387,8 +387,8 @@ describe('CMTStaking contract', function () {
             const { cmtStaking, validator1, addrs } = await loadFixture(deployTokenFixture);
             const staker = addrs[0];
             const stakeAmount = parseEther('0.000001');
-            expect(await cmtStaking.MIN_STAKE_AMOUNT()).to.equal(MIN_STAKE_AMOUNT);
-            await expect(cmtStaking.connect(staker).stake(validator1.address, { value: stakeAmount })).to.be.revertedWith('Stake amount must >= MIN_STAKE_AMOUNT.');
+            expect(await cmtStaking.minStakeAmount()).to.equal(MIN_STAKE_AMOUNT);
+            await expect(cmtStaking.connect(staker).stake(validator1.address, { value: stakeAmount })).to.be.revertedWith('Stake amount must >= minStakeAmount.');
         })
 
         it('cannot stake on a invalid validator', async function () {
@@ -453,7 +453,7 @@ describe('CMTStaking contract', function () {
             // travel to 7 days later
             await mine(7 * ONE_DAY_BLOCKS + 1, { interval: BLOCK_INTERVAL });
             // complete withdraw with withdrawId 0
-            await expect(cmtStaking.connect(staker).completeWithdraw(staker.address, 0)).to.be.revertedWith("Failed to send native token.");
+            await expect(cmtStaking.connect(staker).completeWithdraw(0)).to.be.revertedWith("Failed to send native token.");
         })
 
         it("staker cannot get reward if the staking's validator get deactivated", async function () {
@@ -508,24 +508,26 @@ describe('CMTStaking contract', function () {
             await mine(7 * ONE_DAY_BLOCKS + 1, { interval: BLOCK_INTERVAL });
 
             // staker complete withdraw
-            const stakerReceiver = addrs[2];
+            const stakerReceiver = staker;
             const balanceBefore = await stakerReceiver.getBalance();
-            tx = await cmtStaking.connect(staker).completeWithdraw(stakerReceiver.address, 0);
+            tx = await cmtStaking.connect(staker).completeWithdraw(0);
             confirm = await tx.wait();
             const balanceAfter = await stakerReceiver.getBalance();
-            const stakerUnstakeAmount = balanceAfter.sub(balanceBefore);
+            gas = confirm.cumulativeGasUsed.mul(confirm.effectiveGasPrice)
+            const stakerUnstakeAmount = balanceAfter.sub(balanceBefore).add(gas);
             expect(stakerUnstakeAmount).to.equal(calcStakerRewards);
 
             sInfo = await cmtStaking.stakeTable(validator1.address, staker.address);
             expect(sInfo.pendingReward).to.equal(0);
 
             // validator1 complete withdraw
-            const validatorRewardReceiver = addrs[3];
+            const validatorRewardReceiver = validator1;
             const validatorReceiverBalanceBefore = await validatorRewardReceiver.getBalance();
-            tx = await cmtStaking.connect(validator1).completeWithdraw(validatorRewardReceiver.address, 0);
+            tx = await cmtStaking.connect(validator1).completeWithdraw(0);
             confirm = await tx.wait();
             const validatorReceiverBalanceAfter = await validatorRewardReceiver.getBalance();
-            expect(validatorReceiverBalanceAfter.sub(validatorReceiverBalanceBefore)).to.equal(calcValidatorRewards);
+            gas = confirm.cumulativeGasUsed.mul(confirm.effectiveGasPrice)
+            expect(validatorReceiverBalanceAfter.sub(validatorReceiverBalanceBefore).add(gas)).to.equal(calcValidatorRewards);
             vInfo = await cmtStaking.stakeTable(AddressZero, validator1.address);
             expect(vInfo.pendingReward).to.equal(0);
         })
@@ -582,7 +584,7 @@ describe('CMTStaking contract', function () {
             let staker1Info = await cmtStaking.stakeTable(validator1.address, staker1.address);
             expect(staker1Info.pendingReward).to.equal(staker1Reward);
             // staker1 stakes 2 times, 2ether + 1ether
-            stake1RewardDebt = stakeAmount.mul(3).mul(sPool.lastAUR).div(AUR_PREC);
+            stake1RewardDebt = stakeAmount.mul(3).mul(sPool.lastAUR);
             expect(staker1Info.rewardDebt).to.equal(stake1RewardDebt);
             expect(staker1Info.stakeAmount).to.equal(stakeAmount.mul(3));
         })
@@ -698,8 +700,7 @@ describe('CMTStaking contract', function () {
             expect(pendingWithdrawal.amount).to.equal(stakeAmount.add(STAKER_REWARD_PER_BLOCK.mul(ONE_DAY_BLOCKS + 1)));
 
             // connot complete withdraw if lock period is not reached
-            expect(await cmtStaking.dueWithdrawalCount(staker.address, await time.latest())).to.equal(0);
-            await expect(cmtStaking.connect(staker).completeWithdraw(staker.address, 0)).to.be.revertedWith("Withdrawal is in lock period.");
+            await expect(cmtStaking.connect(staker).completeWithdraw(0)).to.be.revertedWith("Withdrawal is in lock period.");
         })
 
         it("connot unstake amount less than MIN_WITHDRAW_AMOUNT", async function () {
@@ -716,7 +717,7 @@ describe('CMTStaking contract', function () {
             const WRONG_MIN_WITHDRAW_AMOUNT = parseEther('0.00005');
 
             // staker: unstake 
-            await expect(cmtStaking.connect(staker).unstake(validator1.address, WRONG_MIN_WITHDRAW_AMOUNT)).to.be.revertedWith("Withdrawal amount must >= MIN_WITHDRAW_AMOUNT.");
+            await expect(cmtStaking.connect(staker).unstake(validator1.address, WRONG_MIN_WITHDRAW_AMOUNT)).to.be.revertedWith("Withdrawal amount must >= minWithdrawAmount.");
         })
 
         it("able to withdraw partial rewards", async function () {
@@ -758,13 +759,10 @@ describe('CMTStaking contract', function () {
 
             await mine(7 * ONE_DAY_BLOCKS + 1, { interval: BLOCK_INTERVAL });
 
-            // due withdraw index will equal 2
-            const dueWithdraw = await cmtStaking.dueWithdrawalCount(staker.address, await time.latest());
-            expect(dueWithdraw).to.equal(2);
 
             // complete withdraw withdrawId 0 and 1
-            await cmtStaking.connect(staker).completeWithdraw(staker.address, 0);
-            await cmtStaking.connect(staker).completeWithdraw(staker.address, 1);
+            await cmtStaking.connect(staker).completeWithdraw(0);
+            await cmtStaking.connect(staker).completeWithdraw(1);
             myWithdraw0 = await cmtStaking.connect(staker).withdrawTable(staker.address, 0);
             expect(myWithdraw0.completed).to.true;
             myWithdraw1 = await cmtStaking.connect(staker).withdrawTable(staker.address, 1);
