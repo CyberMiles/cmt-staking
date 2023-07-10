@@ -9,13 +9,9 @@ async function main() {
     const ownerAddr = '0x945e9704D2735b420363071bB935ACf2B9C4b814';
     const initValidatorAddr = '0x945e9704D2735b420363071bB935ACf2B9C4b814';
     const initializeParams = [ownerAddr, initValidatorAddr];
-    const MIN_STAKE_AMOUNT = ethers.utils.parseEther('0.0001');
-    const MIN_WITHDRAW_AMOUNT = ethers.utils.parseEther('0.0001');
-    const constructorParams = [MIN_STAKE_AMOUNT, MIN_WITHDRAW_AMOUNT];
     console.log("Deploying ...");
     console.log(`Initialize params: ${initializeParams}`);
-    console.log(`Constructor params: ${constructorParams}`);
-    const proxy = await upgrades.deployProxy(CMTStaking, initializeParams, { initializer: 'initialize', kind: 'uups', constructorArgs: constructorParams, unsafeAllow: ['state-variable-immutable'] })
+    const proxy = await upgrades.deployProxy(CMTStaking, initializeParams, { initializer: 'initialize', kind: 'uups', constructorArgs: [], unsafeAllow: ['state-variable-immutable'] })
 
     console.log("Proxy address", proxy.address)
     console.log("Waiting for deployed ...")
@@ -27,7 +23,7 @@ async function main() {
     try {
         await run("verify:verify", {
             address: proxy.address,
-            constructorArguments: constructorParams
+            constructorArguments: []
         });
     } catch (error) {
         console.log(error);

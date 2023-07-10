@@ -1,6 +1,6 @@
 const { ethers, upgrades, run } = require("hardhat");
 
-const proxyAddress = '0xce65f24445068782d0B6B70d8bA3eA4C82504ef2'
+const proxyAddress = '0xF83E41c0779DB65eFD019e233E7d6a28D2C1Fee6'
 
 async function main() {
     // upgrade proxy
@@ -8,9 +8,7 @@ async function main() {
 
     // new implementation
     const CMTStakingMock = await ethers.getContractFactory('CMTStakingMock');
-    const MIN_STAKE_AMOUNT = ethers.utils.parseEther('0.0001');
-    const MIN_WITHDRAW_AMOUNT = ethers.utils.parseEther('0.0001');
-    const constructorParams = [MIN_STAKE_AMOUNT, MIN_WITHDRAW_AMOUNT];
+    const constructorParams = [];
     console.log("Upgrading ...");
     console.log(`Constructor params: ${constructorParams}`);
     const proxy = await upgrades.upgradeProxy(proxyAddress, CMTStakingMock, { kind: 'uups', constructorArgs: constructorParams, unsafeAllow: ['state-variable-immutable'] })
