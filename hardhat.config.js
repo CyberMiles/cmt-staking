@@ -61,5 +61,12 @@ module.exports = {
             goerli: `${ETHERSCAN_API_KEY}`,
             bscTestnet: `${BSCSCAN_API_KEY}`
         }
+    },
+    addresses: {
+        owner_addr: "0x945e9704D2735b420363071bB935ACf2B9C4b814",
+        init_validator_addr: "0x945e9704D2735b420363071bB935ACf2B9C4b814",
+        cmt_new_deployed_proxyAddress: "0xA859D61D5789EacCb3300407C17213af124f7472",
+        cmt_new_admin: "0x4fbB8D1ef27f325A1656BAd3e2dBEDdd1049d3b3",
+        cmt_new_owner: "0x45c71bDE87667c04eB452ba10fBcf6Bb00A4662A",
     }
 };

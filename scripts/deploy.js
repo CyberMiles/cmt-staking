@@ -1,4 +1,5 @@
 const { ethers, upgrades, run } = require("hardhat");
+const config = require("../hardhat.config");
 
 async function main() {
     const [deployer] = await ethers.getSigners();
@@ -6,8 +7,8 @@ async function main() {
     console.log("Account balance:", (await deployer.getBalance()).toString());
 
     const CMTStaking = await ethers.getContractFactory('CMTStaking');
-    const ownerAddr = '0x945e9704D2735b420363071bB935ACf2B9C4b814';
-    const initValidatorAddr = '0x945e9704D2735b420363071bB935ACf2B9C4b814';
+    const ownerAddr = config.addresses.owner_addr;
+    const initValidatorAddr = config.addresses.init_validator_addr;
     const initializeParams = [ownerAddr, initValidatorAddr];
     console.log("Deploying ...");
     console.log(`Initialize params: ${initializeParams}`);

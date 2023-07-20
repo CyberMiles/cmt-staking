@@ -1,6 +1,7 @@
 const { ethers, upgrades, run } = require("hardhat");
+const config = require("../hardhat.config");
 
-const proxyAddress = '0xF83E41c0779DB65eFD019e233E7d6a28D2C1Fee6'
+const proxyAddress = config.addresses.cmt_new_deployed_proxyAddress;
 
 async function main() {
     // upgrade proxy
