@@ -195,6 +195,24 @@ describe('CMTStaking contract', function () {
             const { cmtStaking, owner } = await loadFixture(deployTokenFixture);
             await expect(cmtStaking.connect(owner).setLockPeriod(0.5 * ONE_DAY)).to.be.revertedWith('Invalid lock period.');
         })
+
+        it('only owner can set minStakeAmount', async function () {
+            const { cmtStaking, normalUser, owner } = await loadFixture(deployTokenFixture);
+            let num = ethers.BigNumber.from("30000000000000000")
+            await expect(cmtStaking.connect(normalUser).setMinStakeAmount(num)).to.be.revertedWith('Ownable: caller is not the owner');
+
+            let num2 = ethers.BigNumber.from("2000000000000000000000")
+            await cmtStaking.connect(owner).setMinStakeAmount(num2)
+            expect(await cmtStaking.minStakeAmount()).to.equal(num2);
+        })
+
+        it('only owner can set MinWithdrawAmount', async function () {
+            const { cmtStaking, normalUser, owner } = await loadFixture(deployTokenFixture);
+            await expect(cmtStaking.connect(normalUser).setMinWithdrawAmount(BigNumber.from(2))).to.be.revertedWith('Ownable: caller is not the owner');
+
+            await cmtStaking.connect(owner).setMinWithdrawAmount(BigNumber.from(3))
+            expect(await cmtStaking.minWithdrawAmount()).to.equal(BigNumber.from(3));
+        })
     })
 
     describe('admin basis function test', function () {
@@ -438,6 +456,14 @@ describe('CMTStaking contract', function () {
 
             await expect(cmtStaking.connect(validator1).validatorWithdraw(stakeAmount.add(VALIDATOR_REWARD_PER_BLOCK.mul(2)))).to.be.revertedWith('Invalid amount or insufficient balance.');
             await expect(cmtStaking.connect(validator1).validatorWithdraw(0)).to.be.revertedWith('Invalid amount or insufficient balance.');
+        })
+
+        it('faill to complete withdraw with a non-existed withdrawalId', async function () {
+            const { cmtStaking, addrs } = await loadFixture(deployTokenFixture);
+            const staker = addrs[0];
+            const nonExistedWithdrawalId = 5;
+            // VM Exception while processing transaction: reverted with panic code 0x32 (Array accessed at an out-of-bounds or negative index)
+            await expect(cmtStaking.connect(staker).completeWithdraw(nonExistedWithdrawalId)).to.be.revertedWithPanic(0x32);
         })
 
         it("failed to send native token if contract balance is insufficient", async function () {
