@@ -43,8 +43,8 @@ module.exports = {
             gas: 10e6,
         },
         cmt_new: {
-            url: `http://3.85.226.255`,
-            chainId: 20,
+            url: `https://cmt-stg-rpc-full.bttcdn.com/`,
+            chainId: 18,
             accounts: [PRIVATE_KEY],
             gas: 10e6,
         },
@@ -63,10 +63,10 @@ module.exports = {
         }
     },
     addresses: {
-        owner_addr: "0x945e9704D2735b420363071bB935ACf2B9C4b814",
-        init_validator_addr: "0x945e9704D2735b420363071bB935ACf2B9C4b814",
-        cmt_new_deployed_proxyAddress: "0xA859D61D5789EacCb3300407C17213af124f7472",
-        cmt_new_admin: "0x4fbB8D1ef27f325A1656BAd3e2dBEDdd1049d3b3",
-        cmt_new_owner: "0x45c71bDE87667c04eB452ba10fBcf6Bb00A4662A",
+        owner_addr: "0x455878F0893a77C6fB7035DF13c7881A2261F88F",
+        init_validator_addr: "0x38672b2206b095e0dd47f9be052c1279a1edcca5",
+        cmt_new_deployed_proxyAddress: "0xe5B22d8240F479f34aBA4913A67964f3Df9dAFCc",
+        cmt_new_admin: "0xfbDBb09C82E05D7ebc7d26D5bfCe325082D8294b",
+        cmt_new_owner: "0xE64ff54eB33be3b9b97A224813D61ADc722d509a",
     }
 };

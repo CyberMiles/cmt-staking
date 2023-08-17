@@ -21,14 +21,14 @@ async function main() {
     const implAddress = await upgrades.erc1967.getImplementationAddress(proxy.address)
     console.log("Implementation address", implAddress)
 
-    try {
-        await run("verify:verify", {
-            address: proxy.address,
-            constructorArguments: []
-        });
-    } catch (error) {
-        console.log(error);
-    }
+    // try {
+    //     await run("verify:verify", {
+    //         address: proxy.address,
+    //         constructorArguments: []
+    //     });
+    // } catch (error) {
+    //     console.log(error);
+    // }
 }
 
 main().catch((error) => {
